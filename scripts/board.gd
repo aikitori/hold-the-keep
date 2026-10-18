@@ -1,8 +1,8 @@
 class_name Board
 extends RefCounted
 ## Spielfeld-Logik: welche Zelle frei ist, wo Türme stehen und welchen Weg die Gegner nehmen.
-## Gegner laufen vom Friedhof zur Burg, auch schräg, aber nicht zwischen zwei Türmen hindurch
-## (keine Ecken schneiden). Ein Turm darf den Weg nie ganz versperren.
+## Gegner laufen vom Friedhof über die Kontrollpunkte zur Burg, auch schräg, aber nicht zwischen zwei
+## Türmen hindurch (keine Ecken schneiden). Ein Turm darf keinen Abschnitt des Wegs ganz versperren.
 
 signal changed
 
@@ -10,6 +10,8 @@ enum BuildCheck { OK, NOT_GRASS, OCCUPIED, ENEMY_THERE, BLOCKS_PATH }
 
 var map: MapData
 var towers: Dictionary = {}  # Vector2i -> Tower (oder true in Tests)
+## Länge jedes Abschnitts (Start -> 1, 1 -> 2, ..., -> Burg), nach jedem Bau neu.
+var leg_lengths: Array[float] = []
 var _astar := AStarGrid2D.new()
 
 
@@ -25,24 +27,49 @@ func _init(map_data: MapData) -> void:
 		for x in map.size.x:
 			var at := Vector2i(x, y)
 			_astar.set_point_solid(at, not walkable_terrain(at))
+	_measure_legs()
 
 
 func walkable_terrain(at: Vector2i) -> bool:
-	return map.cell(at) != MapData.Cell.BLOCKED
+	var kind := map.cell(at)
+	return kind != MapData.Cell.BLOCKED and kind != MapData.Cell.HIGH
 
 
 func walkable(at: Vector2i) -> bool:
 	return walkable_terrain(at) and not towers.has(at)
 
 
-## Weg als Zellenliste von `from` bis zur Burg; leer, wenn es keinen gibt.
-func path_from(from: Vector2i) -> Array[Vector2i]:
+## Startpunkt eines Abschnitts: 0 ist der Friedhof, danach die Kontrollpunkte.
+func leg_start(leg: int) -> Vector2i:
+	return map.spawn if leg == 0 else map.waypoints[leg - 1]
+
+
+func path_between(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 	if not walkable(from):
 		from = nearest_walkable(from)
-	return _astar.get_id_path(from, map.keep)
+	return _astar.get_id_path(from, to)
 
 
-func path_length(path: Array[Vector2i]) -> float:
+## Restweg ab dem Ende von Abschnitt `leg` bis zur Burg.
+func remaining_after(leg: int) -> float:
+	var total := 0.0
+	for i in range(leg + 1, leg_lengths.size()):
+		total += leg_lengths[i]
+	return total
+
+
+## Ganzer Weg vom Friedhof zur Burg (für Tests und Anzeige).
+func full_path() -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for leg in map.waypoints.size():
+		var part := path_between(leg_start(leg), map.waypoints[leg])
+		if not out.is_empty() and not part.is_empty():
+			part.remove_at(0)
+		out.append_array(part)
+	return out
+
+
+static func path_length(path: Array[Vector2i]) -> float:
 	var total := 0.0
 	for i in range(1, path.size()):
 		total += Vector2(path[i] - path[i - 1]).length()
@@ -61,35 +88,51 @@ func nearest_walkable(at: Vector2i) -> Vector2i:
 	return map.spawn
 
 
-## Darf hier gebaut werden? `enemy_cells`: Zellen, auf denen gerade Gegner stehen.
-func check_build(at: Vector2i, enemy_cells: Array[Vector2i] = []) -> BuildCheck:
-	if map.cell(at) != MapData.Cell.GRASS:
+## Darf hier gebaut werden? `walkers`: [Zelle, Ziel] der Gegner, die gerade unterwegs sind.
+func check_build(at: Vector2i, walkers: Array = []) -> BuildCheck:
+	if not map.buildable(at):
 		return BuildCheck.NOT_GRASS
 	if towers.has(at):
 		return BuildCheck.OCCUPIED
-	if enemy_cells.has(at):
-		return BuildCheck.ENEMY_THERE
+	for walker: Array in walkers:
+		if walker[0] == at:
+			return BuildCheck.ENEMY_THERE
+	if map.cell(at) == MapData.Cell.HIGH:
+		return BuildCheck.OK  # Hochfläche liegt nie auf dem Weg
 	_astar.set_point_solid(at, true)
-	var ok := not _astar.get_id_path(map.spawn, map.keep).is_empty()
+	var ok := true
+	for leg in map.waypoints.size():
+		if _astar.get_id_path(leg_start(leg), map.waypoints[leg]).is_empty():
+			ok = false
+			break
 	# Auch kein Gegner darf eingesperrt werden.
-	for cell in enemy_cells:
+	for walker: Array in walkers:
 		if not ok:
 			break
-		ok = not _astar.get_id_path(cell, map.keep).is_empty()
+		ok = not _astar.get_id_path(walker[0], walker[1]).is_empty()
 	_astar.set_point_solid(at, false)
 	return BuildCheck.OK if ok else BuildCheck.BLOCKS_PATH
 
 
 func place(at: Vector2i, tower: Variant) -> void:
 	towers[at] = tower
-	_astar.set_point_solid(at, true)
+	if map.cell(at) != MapData.Cell.HIGH:
+		_astar.set_point_solid(at, true)
+		_measure_legs()
 	changed.emit()
 
 
 func remove(at: Vector2i) -> void:
 	towers.erase(at)
 	_astar.set_point_solid(at, not walkable_terrain(at))
+	_measure_legs()
 	changed.emit()
+
+
+func _measure_legs() -> void:
+	leg_lengths.clear()
+	for leg in map.waypoints.size():
+		leg_lengths.append(path_length(_astar.get_id_path(leg_start(leg), map.waypoints[leg])))
 
 
 static func cell_of(world: Vector3) -> Vector2i:

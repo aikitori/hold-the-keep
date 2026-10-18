@@ -39,7 +39,7 @@ set_setting export/android/android_sdk_path "$ANDROID_HOME"
 set_setting export/android/java_sdk_path "$JAVA_HOME"
 
 if [ "$MODE" = "debug" ]; then
-  DEBUG_KEYSTORE="${DEBUG_KEYSTORE:-$HOME/.local/share/pixel-merger/debug.keystore}"
+  DEBUG_KEYSTORE="${DEBUG_KEYSTORE:-$HOME/.local/share/hold-the-keep/debug.keystore}"
   if [ ! -f "$DEBUG_KEYSTORE" ]; then
     mkdir -p "$(dirname "$DEBUG_KEYSTORE")"
     keytool -genkeypair -keystore "$DEBUG_KEYSTORE" -alias androiddebugkey \
@@ -73,7 +73,7 @@ trap 'cp "$PRESETS_BACKUP" export_presets.cfg; rm -f "$PRESETS_BACKUP"' EXIT
 "$GODOT" --headless --import > /dev/null 2>&1 || true
 "$GODOT" --headless --import > /dev/null 2>&1 || true
 
-OUT="build/pixel-merger-${MODE}.apk"
+OUT="build/hold-the-keep-${MODE}.apk"
 mkdir -p build
 rm -f "$OUT"
 "$GODOT" --headless "--export-${MODE}" "Android" "$OUT"

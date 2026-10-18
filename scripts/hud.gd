@@ -10,6 +10,8 @@ signal upgrade_pressed
 signal sell_pressed
 signal deselect_pressed
 signal restart_pressed
+signal menu_pressed
+signal spec_pressed(spec_id: StringName)
 
 const FONT := preload("res://assets/fonts/MedievalSharp.ttf")
 const WOOD := Color("#3b2a1e")
@@ -33,6 +35,8 @@ var _card_title := Label.new()
 var _card_text := Label.new()
 var _upgrade_button := Button.new()
 var _sell_button := Button.new()
+var _spec_buttons: Array[Button] = []
+var _spec_ids: Array[StringName] = [&"", &""]
 var _toast := Label.new()
 var _toast_tween: Tween
 var _end_panel := PanelContainer.new()
@@ -46,7 +50,7 @@ func _ready() -> void:
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.theme = _make_theme()
+	root.theme = make_theme()
 	add_child(root)
 	_bars.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_bars.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -68,7 +72,7 @@ func _ready() -> void:
 	root.add_child(_toast)
 
 
-func _make_theme() -> Theme:
+static func make_theme() -> Theme:
 	var theme := Theme.new()
 	theme.default_font = FONT
 	theme.default_font_size = 20
@@ -127,6 +131,10 @@ func _build_top(root: Control) -> void:
 	var spacer2 := Control.new()
 	spacer2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer2)
+	var menu := Button.new()
+	menu.text = "Menü"
+	menu.pressed.connect(func() -> void: menu_pressed.emit())
+	row.add_child(menu)
 	_speed_button.text = "Tempo 1x"
 	_speed_button.pressed.connect(func() -> void: speed_pressed.emit())
 	row.add_child(_speed_button)
@@ -149,7 +157,7 @@ func _build_bottom(root: Control) -> void:
 		var def: Dictionary = Defs.TOWERS[id]
 		var button := Button.new()
 		button.toggle_mode = true
-		button.custom_minimum_size = Vector2(118, 112)
+		button.custom_minimum_size = Vector2(122, 108)
 		button.tooltip_text = def["info"]
 		var box := VBoxContainer.new()
 		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -157,7 +165,7 @@ func _build_bottom(root: Control) -> void:
 		box.add_theme_constant_override("separation", 0)
 		button.add_child(box)
 		var icon := TextureRect.new()
-		icon.custom_minimum_size = Vector2(110, 66)
+		icon.custom_minimum_size = Vector2(104, 64)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -166,7 +174,7 @@ func _build_bottom(root: Control) -> void:
 		var name_label := Label.new()
 		name_label.text = "%s  %d" % [def["name"], def["cost"]]
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_label.add_theme_font_size_override("font_size", 17)
+		name_label.add_theme_font_size_override("font_size", 14)
 		name_label.add_theme_color_override("font_color", INK)
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(name_label)
@@ -241,6 +249,13 @@ func _build_card(root: Control) -> void:
 	box.add_child(_card_text)
 	_upgrade_button.pressed.connect(func() -> void: upgrade_pressed.emit())
 	box.add_child(_upgrade_button)
+	for i in 2:
+		var spec := Button.new()
+		spec.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		spec.custom_minimum_size = Vector2(230, 0)
+		spec.pressed.connect(func() -> void: spec_pressed.emit(_spec_ids[i]))
+		box.add_child(spec)
+		_spec_buttons.append(spec)
 	_sell_button.pressed.connect(func() -> void: sell_pressed.emit())
 	box.add_child(_sell_button)
 	var close := Button.new()
@@ -255,11 +270,23 @@ func show_tower(tower: Tower, gold: int) -> void:
 		return
 	var def: Dictionary = Defs.TOWERS[tower.id]
 	_card.visible = true
-	_card_title.text = "%s · Stufe %d" % [def["name"], tower.level] if def["damage"] > 0 else def["name"]
-	var lines: Array[String] = [def["info"]]
+	_card_title.text = "%s · Stufe %d" % [tower.title(), tower.level] if def["damage"] > 0 else def["name"]
+	var lines: Array[String] = [def["info"] if tower.spec_id == &"" else Defs.spec(tower.id, tower.spec_id)["info"]]
 	if def["damage"] > 0:
 		lines.append("Schaden %d · Reichweite %.1f" % [roundi(tower.damage()), tower.reach()])
-		lines.append("Schüsse pro Sekunde %.1f" % (1.0 / Defs.tower_cooldown(tower.id, tower.level)))
+		lines.append("Schüsse pro Sekunde %.1f" % (1.0 / tower.cooldown()))
+		lines.append({"ground": "Trifft Bodengegner", "air": "Trifft nur Fliegende", "both": "Trifft Boden und Luft"}[tower.targets()])
+	var options := tower.spec_options()
+	for i in 2:
+		var button := _spec_buttons[i]
+		button.visible = i < options.size()
+		if button.visible:
+			var option: Dictionary = options[i]
+			_spec_ids[i] = option["id"]
+			button.text = "%s  %d Gold\n%s" % [option["name"], option["cost"], option["info"]]
+			button.disabled = option["cost"] > gold
+	if not options.is_empty():
+		lines.append("Wähle eine Spezialisierung:")
 	_card_text.text = "\n".join(lines)
 	var cost := Defs.upgrade_cost(tower.id, tower.level)
 	_upgrade_button.visible = cost > 0

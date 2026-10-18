@@ -15,7 +15,7 @@ func _ready() -> void:
 	var map := MapData.load_map(&"vier_felder")
 	_check(map.spawn != Vector2i(-1, -1) and map.keep != Vector2i(-1, -1), "Karte hat Friedhof und Burg")
 	var board := Board.new(map)
-	var path := board.path_from(map.spawn)
+	var path := board.full_path()
 	_check(path.size() > 40 and path[-1] == map.keep, "Weg vom Friedhof zur Burg führt durch alle Felder (%d Schritte)" % path.size())
 	_check(board.check_build(Vector2i(19, 10)) == Board.BuildCheck.NOT_GRASS, "Auf dem festen Weg kann nicht gebaut werden")
 	_check(board.check_build(Vector2i(0, 0)) == Board.BuildCheck.NOT_GRASS, "Im Wald kann nicht gebaut werden")
@@ -35,16 +35,44 @@ func _ready() -> void:
 		maze.place(Vector2i(7, y), true)
 	for y in range(3, 12):
 		maze.place(Vector2i(13, y), true)
-	var longer := maze.path_from(map.spawn)
+	var longer := maze.full_path()
 	_check(maze.path_length(longer) > board.path_length(path) + 10.0,
 			"Mauern machen den Weg länger (%.1f statt %.1f)" % [maze.path_length(longer), board.path_length(path)])
-	_check(board.check_build(Vector2i(5, 5), [Vector2i(5, 5)]) == Board.BuildCheck.ENEMY_THERE, "Nicht auf Gegnern bauen")
+	_check(board.check_build(Vector2i(5, 5), [[Vector2i(5, 5), map.keep]]) == Board.BuildCheck.ENEMY_THERE, "Nicht auf Gegnern bauen")
+	_test_maps()
 	var boss_wave := Defs.wave(5)
 	_check(boss_wave[0] == &"vampire" and Defs.wave(10)[0] == &"keeper", "Bosse in Welle 5 und 10")
 	_check(Defs.upgrade_cost(&"archer", 3) == -1 and Defs.upgrade_cost(&"wall", 1) == -1, "Ausbau endet bei Stufe 3, Mauern nie")
 	await _play()
 	print("LOGIC-TEST ", "FEHLGESCHLAGEN" if _failed else "OK")
 	get_tree().quit(1 if _failed else 0)
+
+
+## Alle Karten: Weg über alle Kontrollpunkte, Hochfläche bebaubar ohne den Weg zu ändern.
+func _test_maps() -> void:
+	for id: StringName in MapData.ORDER:
+		var map := MapData.load_map(id)
+		var board := Board.new(map)
+		var path := board.full_path()
+		var visits := true
+		for point in map.waypoints:
+			visits = visits and path.has(point)
+		_check(map.spawn.x >= 0 and path.size() > 20 and visits and path[-1] == map.keep,
+				"Karte %s: Weg über %d Ziele, %d Schritte" % [id, map.waypoints.size(), path.size()])
+		var high := Vector2i(-1, -1)
+		for y in map.size.y:
+			for x in map.size.x:
+				if high.x < 0 and map.cell(Vector2i(x, y)) == MapData.Cell.HIGH:
+					high = Vector2i(x, y)
+		if high.x >= 0:
+			var before := board.full_path().size()
+			_check(board.check_build(high) == Board.BuildCheck.OK, "Karte %s: Hochfläche bebaubar" % id)
+			board.place(high, true)
+			_check(board.full_path().size() == before, "Karte %s: Turm auf der Hochfläche ändert den Weg nicht" % id)
+	_check(Defs.is_air_wave(4) and Defs.wave(4).all(func(k: StringName) -> bool: return Defs.ENEMIES[k].get("air", false)),
+			"Welle 4 ist eine Luftwelle")
+	for id: StringName in Defs.SPECS:
+		_check((Defs.SPECS[id] as Array).size() == 2, "%s hat zwei Spezialisierungen" % id)
 
 
 ## Kurzer Ablauf: Türme an den Ausgang von Feld A, drei Wellen im Zeitraffer.
@@ -66,13 +94,20 @@ func _play() -> void:
 	main.select_tower(tower)
 	main.upgrade_selected()
 	_check(tower.level == 2, "Ausbau auf Stufe 2")
+	main.upgrade_selected()
+	var options := tower.spec_options()
+	_check(tower.level == 3 and options.size() == 2, "Auf Stufe 3 zwei Spezialisierungen")
+	main.specialize_selected(options[1]["id"])
+	_check(tower.spec_id == options[1]["id"] and tower.spec_options().is_empty(), "Spezialisiert: %s" % tower.title())
+	var sky: Tower = main.try_build(&"skyguard", Vector2i(15, 8))
+	_check(sky != null and sky.targets() == "air", "Himmelswacht trifft nur Luft")
 	Engine.time_scale = 8.0
 	main.countdown = 0.1
 	var waited := 0.0
-	while main.wave < 3 and waited < 240.0:
+	while main.wave < 4 and waited < 300.0:
 		await get_tree().process_frame
 		waited += get_process_delta_time()
-		if main.countdown > 0.0 and main.wave < 3:
+		if main.countdown > 0.0 and main.wave < 4:
 			main.call_next_wave()
 	for i in 600:
 		if main.enemies.is_empty() and main._queue.is_empty():
@@ -80,7 +115,7 @@ func _play() -> void:
 		await get_tree().process_frame
 	Engine.time_scale = 1.0
 	_check(main.kills > 10, "Türme töten Gegner (%d, Leben %d)" % [main.kills, main.lives])
-	_check(main.wave >= 3, "Mindestens drei Wellen gespielt (%d)" % main.wave)
+	_check(main.wave >= 4, "Vier Wellen gespielt, auch eine Luftwelle (%d)" % main.wave)
 	var gold_before: int = main.gold
 	main.select_tower(tower)
 	main.sell_selected()

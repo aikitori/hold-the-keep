@@ -1,10 +1,12 @@
+class_name Main
 extends Node3D
 ## Hauptszene: baut die Karte aus Kenney-Kacheln, steuert Wellen, Gold, Leben und die Eingabe.
 ## Tippen oder Klicken baut (mit Gerät: erst Vorschau, zweiter Tipp baut), Ziehen verschiebt die Karte,
 ## Mausrad oder zwei Finger zoomen.
 
-const MAP := &"vier_felder"
 const DRAG_THRESHOLD := 12.0
+## Karte für das nächste Spiel (setzt das Menü).
+static var map_id: StringName = &"vier_felder"
 
 var map: MapData
 var board: Board
@@ -34,7 +36,7 @@ var _pinch_distance := 0.0
 
 func _ready() -> void:
 	Engine.time_scale = 1.0
-	map = MapData.load_map(MAP)
+	map = MapData.load_map(map_id)
 	board = Board.new(map)
 	board.changed.connect(_on_board_changed)
 	_build_lighting()
@@ -42,7 +44,7 @@ func _ready() -> void:
 	_build_landmarks()
 	rig.bounds = Rect2(0, 0, map.size.x - 1, map.size.y - 1)
 	add_child(rig)
-	rig.position = Vector3(10, 0, 7)
+	rig.position = Board.world_of(map.spawn).lerp(Board.world_of(map.size / 2), 0.4)
 	_ring.mesh = _ring_mesh()
 	_ring.visible = false
 	add_child(_ring)
@@ -54,9 +56,13 @@ func _ready() -> void:
 	hud.upgrade_pressed.connect(upgrade_selected)
 	hud.sell_pressed.connect(sell_selected)
 	hud.deselect_pressed.connect(func() -> void: select_tower(null))
+	hud.spec_pressed.connect(specialize_selected)
 	hud.restart_pressed.connect(func() -> void:
 		Engine.time_scale = 1.0
 		get_tree().reload_current_scene())
+	hud.menu_pressed.connect(func() -> void:
+		Engine.time_scale = 1.0
+		get_tree().change_scene_to_file("res://scenes/menu.tscn"))
 	hud.toast("Baue Türme und lege ein Labyrinth: die Toten kommen vom Friedhof!")
 
 
@@ -93,8 +99,12 @@ func _build_terrain() -> void:
 			var at := Vector2i(x, y)
 			var base := Transform3D(Basis.IDENTITY, Board.world_of(at))
 			var kind := map.cell(at)
-			var tile := "td/tile-dirt" if kind in [MapData.Cell.ROAD, MapData.Cell.SPAWN, MapData.Cell.KEEP] else "td/tile"
-			_add(groups, tile, base)
+			var road := kind in [MapData.Cell.ROAD, MapData.Cell.SPAWN, MapData.Cell.KEEP, MapData.Cell.CHECKPOINT]
+			if kind == MapData.Cell.HIGH:
+				# Hochfläche: etwas höhere Kachel, Kante sieht man an den Nachbarn
+				_add(groups, "td/tile", Transform3D(Basis.IDENTITY.scaled(Vector3(1, Tower.HIGH / 0.2, 1)), base.origin))
+			else:
+				_add(groups, "td/tile-dirt" if road else "td/tile", base)
 			if kind != MapData.Cell.BLOCKED or near_keep.call(at) or near_spawn.call(at):
 				continue
 			var top := base.translated(Vector3(0, 0.2, 0))
@@ -164,6 +174,19 @@ func _build_landmarks() -> void:
 	var banner := Models.make("castle/flag-banner-long")
 	banner.position = Board.world_of(map.keep + Vector2i(1, -1), 0.2)
 	add_child(banner)
+	for i in map.waypoints.size() - 1:
+		var marker := Models.make("castle/flag")
+		marker.position = Board.world_of(map.waypoints[i], 0.2)
+		add_child(marker)
+		var number := Label3D.new()
+		number.text = str(i + 1)
+		number.font = Hud.FONT
+		number.font_size = 96
+		number.outline_size = 18
+		number.modulate = Hud.GOLD
+		number.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		number.position = Board.world_of(map.waypoints[i], 1.4)
+		add_child(number)
 	var crypt := Models.make("graveyard/crypt")
 	crypt.position = Board.world_of(map.spawn + Vector2i(-1, 0), 0.2)
 	crypt.rotation.y = PI / 2
@@ -191,7 +214,7 @@ func _ring_mesh() -> Mesh:
 
 func _show_ring(center: Vector3, radius: float) -> void:
 	_ring.visible = radius > 0.0
-	_ring.position = Vector3(center.x, 0.25, center.z)
+	_ring.position = Vector3(center.x, center.y + 0.27, center.z)
 	_ring.scale = Vector3(radius, 0.05, radius)
 
 
@@ -224,7 +247,10 @@ func _start_wave() -> void:
 	_queue = Defs.wave(wave)
 	_spawn_timer = 0.0
 	var boss := _queue[0] in [&"vampire", &"keeper"]
-	hud.toast("Welle %d: %s" % [wave, ("Boss! " if boss else "") + Defs.ENEMIES[_queue[-1]]["name"]])
+	var label: String = ("Boss! " if boss else "") + Defs.ENEMIES[_queue[-1]]["name"]
+	if Defs.is_air_wave(wave):
+		label = "Luftangriff! Geister fliegen über das Labyrinth"
+	hud.toast("Welle %d: %s" % [wave, label])
 
 
 ## Nächste Welle sofort: Bonus-Gold für die gesparte Zeit.
@@ -276,13 +302,13 @@ func _on_board_changed() -> void:
 
 
 ## Kleine Staubwolke beim Einschlag.
-func puff(at: Vector3) -> void:
+func puff(at: Vector3, color := Color(0.85, 0.75, 0.6, 0.6)) -> void:
 	var dust := MeshInstance3D.new()
 	var sphere := SphereMesh.new()
 	sphere.radius = 0.5
 	sphere.height = 0.5
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.85, 0.75, 0.6, 0.6)
+	material.albedo_color = color
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	sphere.material = material
@@ -299,12 +325,13 @@ func puff(at: Vector3) -> void:
 
 # --- Bauen ------------------------------------------------------------------------
 
-func enemy_cells() -> Array[Vector2i]:
-	var cells: Array[Vector2i] = []
+## [Zelle, Ziel] aller Bodengegner: auf ihnen darf nicht gebaut und sie dürfen nicht eingesperrt werden.
+func walkers() -> Array:
+	var out: Array = []
 	for enemy in enemies:
-		if enemy.alive:
-			cells.append(enemy.current_cell())
-	return cells
+		if enemy.alive and not enemy.air:
+			out.append([enemy.current_cell(), enemy.goal()])
+	return out
 
 
 const BUILD_MESSAGES := {
@@ -320,14 +347,14 @@ func try_build(id: StringName, at: Vector2i) -> Tower:
 	if gold < cost:
 		hud.toast("Zu wenig Gold")
 		return null
-	var check := board.check_build(at, enemy_cells())
+	var check := board.check_build(at, walkers())
 	if check != Board.BuildCheck.OK:
 		hud.toast(BUILD_MESSAGES[check])
 		return null
 	gold -= cost
 	var tower := Tower.new()
 	add_child(tower)
-	tower.setup(id, at, self)
+	tower.setup(id, at, self, Tower.HIGH if map.cell(at) == MapData.Cell.HIGH else Tower.GROUND)
 	board.place(at, tower)
 	return tower
 
@@ -351,6 +378,19 @@ func upgrade_selected() -> void:
 	gold -= cost
 	_selected.upgrade()
 	_show_ring(_selected.position, _selected.reach())
+
+
+func specialize_selected(spec_id: StringName) -> void:
+	if _selected == null or _selected.spec_options().is_empty():
+		return
+	var cost: int = Defs.spec(_selected.id, spec_id)["cost"]
+	if gold < cost:
+		hud.toast("Zu wenig Gold")
+		return
+	gold -= cost
+	_selected.specialize(spec_id)
+	_show_ring(_selected.position, _selected.reach())
+	hud.toast("%s: %s" % [Defs.TOWERS[_selected.id]["name"], Defs.spec(_selected.id, spec_id)["name"]])
 
 
 func sell_selected() -> void:
@@ -383,8 +423,8 @@ func _move_ghost(at: Vector2i) -> void:
 		return
 	_ghost_cell = at
 	_ghost.visible = map.cell(at) != MapData.Cell.BLOCKED
-	_ghost.position = Board.world_of(at)
-	var ok: bool = board.check_build(at, enemy_cells()) == Board.BuildCheck.OK and gold >= Defs.TOWERS[_ghost_id]["cost"]
+	_ghost.position = Board.world_of(at, Tower.HIGH - Tower.GROUND if map.cell(at) == MapData.Cell.HIGH else 0.0)
+	var ok: bool = board.check_build(at, walkers()) == Board.BuildCheck.OK and gold >= Defs.TOWERS[_ghost_id]["cost"]
 	Models.tint(_ghost, Color(0.4, 1.0, 0.5, 0.55) if ok else Color(1.0, 0.3, 0.25, 0.55))
 	_show_ring(_ghost.position, Defs.tower_range(_ghost_id, 1))
 	_ring.visible = _ghost.visible and Defs.tower_range(_ghost_id, 1) > 0.0

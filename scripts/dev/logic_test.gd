@@ -12,6 +12,9 @@ func _check(ok: bool, text: String) -> void:
 
 
 func _ready() -> void:
+	for id: StringName in Sfx.VOLUME:
+		_check(Sfx._streams[id] is AudioStream, "Klang %s geladen" % id)
+	Sfx.muted = true  # Wiedergaben, die beim Beenden noch laufen, meldet Godot als hängend.
 	var map := MapData.load_map(&"vier_felder")
 	_check(map.spawn != Vector2i(-1, -1) and map.keep != Vector2i(-1, -1), "Karte hat Friedhof und Burg")
 	var board := Board.new(map)

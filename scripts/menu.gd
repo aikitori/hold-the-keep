@@ -26,7 +26,7 @@ func _ready() -> void:
 	var title := Label.new()
 	title.text = "Hold the Keep"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 72)
+	title.add_theme_font_size_override("font_size", 64)
 	title.add_theme_color_override("font_color", Hud.GOLD)
 	title.add_theme_color_override("font_outline_color", Hud.INK)
 	title.add_theme_constant_override("outline_size", 12)
@@ -34,6 +34,8 @@ func _ready() -> void:
 	var tagline := Label.new()
 	tagline.text = "Die Toten ziehen vom Friedhof zur Burg. Baue Türme, lege Labyrinthe, halte die Burg."
 	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tagline.custom_minimum_size.x = 420
 	column.add_child(tagline)
 	var grid := GridContainer.new()
 	grid.columns = 2
@@ -42,6 +44,9 @@ func _ready() -> void:
 	column.add_child(grid)
 	for id: StringName in MapData.ORDER:
 		grid.add_child(_card(id))
+	var layout := func() -> void: grid.columns = 1 if UiScale.narrow else 2
+	UiScale.changed.connect(layout)
+	layout.call()
 
 
 func _card(id: StringName) -> Control:
@@ -71,7 +76,9 @@ func _card(id: StringName) -> Control:
 	box.add_child(facts)
 	var play := Button.new()
 	play.text = "Spielen"
+	play.custom_minimum_size.y = 48
 	play.pressed.connect(func() -> void:
+		Sfx.play(&"click")
 		Main.map_id = id
 		get_tree().change_scene_to_file(MAIN_SCENE))
 	box.add_child(play)

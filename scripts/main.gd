@@ -251,6 +251,7 @@ func _start_wave() -> void:
 	if Defs.is_air_wave(wave):
 		label = "Luftangriff! Geister fliegen über das Labyrinth"
 	hud.toast("Welle %d: %s" % [wave, label])
+	Sfx.play(&"wave")
 
 
 ## Nächste Welle sofort: Bonus-Gold für die gesparte Zeit.
@@ -258,6 +259,8 @@ func call_next_wave() -> void:
 	if game_over or not _queue.is_empty() or countdown <= 0.0:
 		return
 	gold += int(countdown) / 2
+	if int(countdown) >= 2:
+		Sfx.play(&"coins")
 	_start_wave()
 
 
@@ -266,6 +269,8 @@ func _spawn(kind: StringName) -> void:
 	add_child(enemy)
 	enemy.setup(kind, wave, self, board)
 	enemies.append(enemy)
+	if enemy.is_boss:
+		Sfx.play(&"boss")
 
 
 func enemy_killed(enemy: Enemy) -> void:
@@ -279,6 +284,7 @@ func enemy_killed(enemy: Enemy) -> void:
 func enemy_reached_keep(enemy: Enemy) -> void:
 	enemies.erase(enemy)
 	lives -= 5 if enemy.is_boss else 1
+	Sfx.play(&"keep_hit")
 	if lives <= 0:
 		lives = 0
 		_finish(false)
@@ -288,6 +294,7 @@ func _finish(won: bool) -> void:
 	game_over = true
 	Engine.time_scale = 1.0
 	hud.show_end(won, wave)
+	Sfx.play(&"victory" if won else &"defeat")
 
 
 func _cycle_speed() -> void:
@@ -345,18 +352,24 @@ const BUILD_MESSAGES := {
 func try_build(id: StringName, at: Vector2i) -> Tower:
 	var cost: int = Defs.TOWERS[id]["cost"]
 	if gold < cost:
-		hud.toast("Zu wenig Gold")
+		_refuse("Zu wenig Gold")
 		return null
 	var check := board.check_build(at, walkers())
 	if check != Board.BuildCheck.OK:
-		hud.toast(BUILD_MESSAGES[check])
+		_refuse(BUILD_MESSAGES[check])
 		return null
 	gold -= cost
 	var tower := Tower.new()
 	add_child(tower)
 	tower.setup(id, at, self, Tower.HIGH if map.cell(at) == MapData.Cell.HIGH else Tower.GROUND)
 	board.place(at, tower)
+	Sfx.play(&"build")
 	return tower
+
+
+func _refuse(message: String) -> void:
+	hud.toast(message)
+	Sfx.play(&"error")
 
 
 func select_tower(tower: Tower) -> void:
@@ -373,10 +386,11 @@ func upgrade_selected() -> void:
 		return
 	var cost := Defs.upgrade_cost(_selected.id, _selected.level)
 	if gold < cost:
-		hud.toast("Zu wenig Gold")
+		_refuse("Zu wenig Gold")
 		return
 	gold -= cost
 	_selected.upgrade()
+	Sfx.play(&"upgrade")
 	_show_ring(_selected.position, _selected.reach())
 
 
@@ -385,10 +399,11 @@ func specialize_selected(spec_id: StringName) -> void:
 		return
 	var cost: int = Defs.spec(_selected.id, spec_id)["cost"]
 	if gold < cost:
-		hud.toast("Zu wenig Gold")
+		_refuse("Zu wenig Gold")
 		return
 	gold -= cost
 	_selected.specialize(spec_id)
+	Sfx.play(&"spec")
 	_show_ring(_selected.position, _selected.reach())
 	hud.toast("%s: %s" % [Defs.TOWERS[_selected.id]["name"], Defs.spec(_selected.id, spec_id)["name"]])
 
@@ -397,6 +412,7 @@ func sell_selected() -> void:
 	if _selected == null:
 		return
 	gold += roundi(_selected.invested * Defs.SELL_SHARE)
+	Sfx.play(&"sell")
 	board.remove(_selected.cell)
 	_selected.queue_free()
 	select_tower(null)

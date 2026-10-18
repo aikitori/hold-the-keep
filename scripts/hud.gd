@@ -28,6 +28,12 @@ var _lives_label := Label.new()
 var _wave_label := Label.new()
 var _timer_label := Label.new()
 var _next_button := Button.new()
+var _sound_button := Button.new()
+var _title := Label.new()
+var _top_row := HBoxContainer.new()
+var _top_row2 := HBoxContainer.new()
+var _top_buttons: Array[Button] = []
+var _build_grid := GridContainer.new()
 var _speed_button := Button.new()
 var _build_buttons: Dictionary = {}
 var _card := PanelContainer.new()
@@ -60,16 +66,42 @@ func _ready() -> void:
 	_build_bottom(root)
 	_build_card(root)
 	_build_end(root)
-	_toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_toast.position.y = 70
+	_toast.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_toast.offset_left = 16
+	_toast.offset_right = -16
+	_toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_toast.add_theme_font_size_override("font_size", 26)
 	_toast.add_theme_color_override("font_color", PARCHMENT)
 	_toast.add_theme_color_override("font_outline_color", INK)
 	_toast.add_theme_constant_override("outline_size", 8)
-	_toast.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_toast)
+	for button in root.find_children("*", "Button", true, false):
+		if not button in [_upgrade_button, _sell_button] and not button in _spec_buttons:
+			(button as Button).pressed.connect(Sfx.play.bind(&"click"))
+	UiScale.changed.connect(_layout)
+	_layout()
+
+
+## Breit: alles in einer Zeile oben, Bauleiste einreihig. Schmal (Hochformat): Knöpfe in zweiter Zeile,
+## Bauleiste in zwei Reihen.
+func _layout() -> void:
+	var narrow: bool = UiScale.narrow
+	_title.visible = not narrow
+	_top_row2.visible = narrow
+	_top_row.add_theme_constant_override("separation", 14 if narrow else 22)
+	for button in _top_buttons:
+		button.reparent(_top_row2 if narrow else _top_row)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL if narrow else Control.SIZE_FILL
+	var count := Defs.BUILD_ORDER.size()
+	_build_grid.columns = ceili(count / 2.0) if narrow else count
+	for id: StringName in _build_buttons:
+		var button: Button = _build_buttons[id]
+		button.custom_minimum_size = Vector2(98, 104) if narrow else Vector2(122, 112)
+		var label: Label = button.find_children("*", "Label", true, false)[0]
+		label.add_theme_font_size_override("font_size", 13 if narrow else 15)
+	_toast.offset_top = 120 if narrow else 70
 
 
 static func make_theme() -> Theme:
@@ -112,35 +144,42 @@ func _build_top(root: Control) -> void:
 	bar.offset_right = -8
 	bar.offset_top = 8
 	root.add_child(bar)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 22)
-	bar.add_child(row)
+	var rows := VBoxContainer.new()
+	bar.add_child(rows)
+	_top_row.add_theme_constant_override("separation", 22)
+	rows.add_child(_top_row)
+	_top_row2.add_theme_constant_override("separation", 10)
+	rows.add_child(_top_row2)
 	_gold_label.add_theme_color_override("font_color", GOLD)
 	_lives_label.add_theme_color_override("font_color", Color("#f08a7a"))
 	for label in [_gold_label, _lives_label, _wave_label, _timer_label]:
 		label.add_theme_font_size_override("font_size", 22)
-		row.add_child(label)
+		_top_row.add_child(label)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spacer)
-	var title := Label.new()
-	title.text = "Hold the Keep"
-	title.add_theme_font_size_override("font_size", 26)
-	title.add_theme_color_override("font_color", GOLD)
-	row.add_child(title)
+	_top_row.add_child(spacer)
+	_title.text = "Hold the Keep"
+	_title.add_theme_font_size_override("font_size", 26)
+	_title.add_theme_color_override("font_color", GOLD)
+	_top_row.add_child(_title)
 	var spacer2 := Control.new()
 	spacer2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spacer2)
+	_top_row.add_child(spacer2)
 	var menu := Button.new()
 	menu.text = "Menü"
 	menu.pressed.connect(func() -> void: menu_pressed.emit())
-	row.add_child(menu)
+	_sound_button.pressed.connect(func() -> void:
+		Sfx.set_muted(not Sfx.muted)
+		_sound_button.text = "Ton aus" if Sfx.muted else "Ton an")
+	_sound_button.text = "Ton aus" if Sfx.muted else "Ton an"
 	_speed_button.text = "Tempo 1x"
 	_speed_button.pressed.connect(func() -> void: speed_pressed.emit())
-	row.add_child(_speed_button)
 	_next_button.text = "Nächste Welle"
 	_next_button.pressed.connect(func() -> void: next_wave_pressed.emit())
-	row.add_child(_next_button)
+	_top_buttons = [menu, _sound_button, _speed_button, _next_button]
+	for button: Button in _top_buttons:
+		button.custom_minimum_size.y = 44
+		_top_row.add_child(button)
 
 
 func _build_bottom(root: Control) -> void:
@@ -150,9 +189,10 @@ func _build_bottom(root: Control) -> void:
 	bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	bar.offset_bottom = -8
 	root.add_child(bar)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	bar.add_child(row)
+	_build_grid.columns = Defs.BUILD_ORDER.size()
+	_build_grid.add_theme_constant_override("h_separation", 8)
+	_build_grid.add_theme_constant_override("v_separation", 8)
+	bar.add_child(_build_grid)
 	for id: StringName in Defs.BUILD_ORDER:
 		var def: Dictionary = Defs.TOWERS[id]
 		var button := Button.new()
@@ -165,21 +205,22 @@ func _build_bottom(root: Control) -> void:
 		box.add_theme_constant_override("separation", 0)
 		button.add_child(box)
 		var icon := TextureRect.new()
-		icon.custom_minimum_size = Vector2(104, 64)
+		icon.custom_minimum_size = Vector2(80, 58)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon.texture = _icon(id)
 		box.add_child(icon)
 		var name_label := Label.new()
-		name_label.text = "%s  %d" % [def["name"], def["cost"]]
+		name_label.text = "%s\n%d Gold" % [def["name"], def["cost"]]
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_label.add_theme_font_size_override("font_size", 14)
+		name_label.add_theme_font_size_override("font_size", 15)
+		name_label.add_theme_constant_override("line_spacing", -2)
 		name_label.add_theme_color_override("font_color", INK)
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(name_label)
 		button.toggled.connect(func(on: bool) -> void: _on_build_toggled(id, on))
-		row.add_child(button)
+		_build_grid.add_child(button)
 		_build_buttons[id] = button
 
 

@@ -122,6 +122,7 @@ func apply_burn(per_second: float, seconds: float) -> void:
 func _die() -> void:
 	alive = false
 	game.enemy_killed(self)
+	Sfx.play_at(&"boss_die" if is_boss else &"bones" if kind == &"skeleton" else &"ghost" if air else &"die", position)
 	if _anim != null and _anim.has_animation("die"):
 		_anim.speed_scale = 1.0
 		_anim.play("die")

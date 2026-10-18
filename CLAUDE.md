@@ -20,6 +20,13 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
   Abschnitt, Fliegende geradeaus), Geschosse (Pfeil, Bolzen, Fels im Bogen, Magie, Feuer, Kettenblitz).
 - `scripts/hud.gd`: Oberfläche im Code gebaut (Holz und Pergament, `Hud.make_theme()`), Turmbilder per
   SubViewport, Lebensbalken als 2D-Overlay.
+- `scripts/sfx.gd` (Autoload `Sfx`): Klänge aus `assets/audio/`, `Sfx.play(id)` / `Sfx.play_at(id, pos)`,
+  Lautstärke je Klang in `VOLUME`, Ton aus in `user://settings.cfg`. Klänge neu erzeugen: Auswahl in
+  `tools/import_sfx.py` (`SOUNDS`), Rohdateien in `tools/sfx_src/` (mit `.gdignore`), `python3 tools/import_sfx.py`
+  (mit Paketordner als Argument werden die Rohdateien vorher kopiert).
+- `scripts/ui_scale.gd` (Autoload `UiScale`): vergrößert die Oberfläche auf Touch-Geräten, `narrow` im
+  Hochformat. HUD und Menü hängen an `UiScale.changed`. Am Rechner testen mit `-- --touch-ui` und
+  `--resolution 864x1920`.
 - `scripts/camera_rig.gd`: isometrische Orthokamera (45°, 35,26° von oben), Verschieben und Zoomen.
 
 ## Inhalte

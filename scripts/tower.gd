@@ -169,6 +169,7 @@ func _process(delta: float) -> void:
 		"damage": damage(), "splash": stat("splash", 0.0), "slow": stat("slow", 0.0),
 		"slow_time": stat("slow_time", 1.6), "burn": stat("burn", 0.0), "chain": int(stat("chain", 0)),
 	}
+	Sfx.play_at(_shot_sound(def["projectile"], hit), global_position)
 	if def["projectile"] == "melee":
 		_lunge()
 		var splash: float = hit["splash"]
@@ -182,6 +183,14 @@ func _process(delta: float) -> void:
 		var shot := Projectile.new()
 		game.add_child(shot)
 		shot.launch(def["projectile"], global_position + Vector3(0, _muzzle_height, 0), target, hit, def["speed"])
+
+
+func _shot_sound(projectile: String, hit: Dictionary) -> StringName:
+	match projectile:
+		"melee": return &"stab"
+		"boulder": return &"throw"
+		"magic": return &"lightning" if hit["chain"] > 0 else &"magic"
+	return StringName(projectile)  # arrow, bolt, fire
 
 
 ## Kurzer Ausfallschritt der Figur beim Nahkampf.

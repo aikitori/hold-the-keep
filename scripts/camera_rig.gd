@@ -21,6 +21,14 @@ func _ready() -> void:
 	camera.position = Vector3(1, 1, 1).normalized() * DISTANCE
 	camera.look_at_from_position(camera.position, Vector3.ZERO, Vector3.UP)
 	camera.current = true
+	get_viewport().size_changed.connect(_fit_aspect)
+	_fit_aspect()
+
+
+## Im Hochformat gilt die Zoomgröße für die Breite, sonst wäre nur ein schmaler Streifen der Karte zu sehen.
+func _fit_aspect() -> void:
+	var view := get_viewport().get_visible_rect().size
+	camera.keep_aspect = Camera3D.KEEP_WIDTH if view.x < view.y else Camera3D.KEEP_HEIGHT
 
 
 func zoom(factor: float) -> void:
@@ -29,7 +37,8 @@ func zoom(factor: float) -> void:
 
 ## Bildschirmbewegung in Pixeln -> Bewegung auf dem Boden.
 func pan(screen_delta: Vector2) -> void:
-	var units := camera.size / get_viewport().get_visible_rect().size.y
+	var view := get_viewport().get_visible_rect().size
+	var units := camera.size / (view.x if camera.keep_aspect == Camera3D.KEEP_WIDTH else view.y)
 	var right := camera.global_transform.basis.x
 	var up := camera.global_transform.basis.y
 	var right_ground := Vector3(right.x, 0, right.z).normalized()

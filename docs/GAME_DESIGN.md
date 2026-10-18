@@ -70,7 +70,20 @@ Ziel ist immer der Gegner in Reichweite mit dem kürzesten Restweg zur Burg.
 - **Schlangenpfad** (32x22): fester Weg in Schleifen durch die Hochfläche, kein Labyrinth.
 - **Weites Feld** (38x24): offenes Feld, drei Kontrollpunkte oben und unten.
 
+## Klänge
+
+Jeder Turm hat einen Schussklang (Pfeil, Bolzen, Wurf, Feuer, Magie, Blitz, Stoß), dazu Einschläge,
+Gegner-Tod (Skelette klappern, Geister heulen, Bosse brüllen beim Auftauchen), Glocke bei Schaden an der Burg,
+Gong zu jeder Welle und ein Jingle bei Sieg oder Niederlage. Klänge auf der Karte sind nur zu hören, wenn die
+Stelle im Bild ist; gleiche Klänge sind begrenzt (höchstens 2 bis 3 gleichzeitig, 70 ms Abstand).
+
+## Bedienung auf Touch-Geräten
+
+Mit Touchscreen wird die Oberfläche so skaliert, dass die kurze Bildschirmseite etwa 560 Einheiten hat
+(am Rechner 720). Im Hochformat: zweite Zeile für die Knöpfe oben, Bauleiste in zwei Reihen, Menü einspaltig,
+die Kamera-Zoomgröße gilt dann für die Breite.
+
 ## Ideen für später
 
 - Mehr Karten (mehrere Startpunkte, Brücken über Flüsse), Schwierigkeitsgrade, Endlosmodus.
-- Sounds und Musik, Englisch als zweite Sprache, Spielstand speichern.
+- Musik, Englisch als zweite Sprache, Spielstand speichern.

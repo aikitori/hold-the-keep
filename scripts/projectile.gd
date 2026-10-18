@@ -82,9 +82,12 @@ func _hit() -> void:
 		for enemy: Enemy in main.enemies.duplicate():
 			if enemy.alive and not enemy.air and Vector2(enemy.position.x - _to.x, enemy.position.z - _to.z).length() <= splash:
 				_apply(enemy)
+		Sfx.play_at(&"burst" if hit["burn"] > 0.0 else &"crash", _to)
 		main.call("puff", _to, Color(1.0, 0.5, 0.2, 0.7) if hit["burn"] > 0.0 else Color(0.85, 0.75, 0.6, 0.6))
 	elif is_instance_valid(target) and target.alive:
 		_apply(target)
+		if kind in ["arrow", "bolt"]:
+			Sfx.play_at(&"hit", _to)
 		if hit["chain"] > 1:
 			_jump(main)
 	queue_free()

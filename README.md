@@ -15,7 +15,8 @@ Die Toten ziehen vom Friedhof zur Burg. Du baust Türme und Mauern, legst daraus
 - Der Weg zur Burg darf nie ganz versperrt werden, aber er darf so lang werden, wie du willst.
 - Fliegende Gegner (Geister) nehmen den geraden Weg über alles hinweg. Nicht jeder Turm trifft sie.
 - Turm antippen: ausbauen (Stufe 1 bis 3), auf Stufe 3 eine von zwei Spezialisierungen wählen, abreißen.
-- "Nächste Welle" holt die Welle früher und gibt Bonus-Gold.
+- "Nächste Welle" holt die Welle früher und gibt Bonus-Gold. "Ton an/aus" schaltet die Klänge.
+- Auf Handy und Tablet ist die Oberfläche größer, im Hochformat steht die Bauleiste in zwei Reihen.
 
 ## Karten
 
@@ -43,4 +44,5 @@ GNU General Public License v3.0 (GPL-3.0-or-later), siehe [LICENSE](LICENSE). Co
 
 3D-Modelle: [Kenney](https://kenney.nl) (CC0), Tower Defense Kit, Castle Kit, Mini Dungeon und Graveyard Kit
 (Lizenztexte in `assets/models/*/License.txt`). Schrift: MedievalSharp von wmk69, SIL Open Font License
-(`assets/fonts/OFL.txt`).
+(`assets/fonts/OFL.txt`). Klänge (CC0): Kenney (RPG Audio, Impact Sounds, Interface Sounds, Music Jingles)
+und rubberduck auf OpenGameArt (80 CC0 RPG SFX, 100 CC0 SFX), Quellen in `tools/import_sfx.py`.

@@ -114,6 +114,16 @@ func check_build(at: Vector2i, walkers: Array = []) -> BuildCheck:
 	return BuildCheck.OK if ok else BuildCheck.BLOCKS_PATH
 
 
+## Ganzer Weg, als stünde auf `at` schon ein Turm (Vorschau beim Bauen).
+func full_path_with(at: Vector2i) -> Array[Vector2i]:
+	if map.cell(at) == MapData.Cell.HIGH or not walkable(at):
+		return full_path()
+	_astar.set_point_solid(at, true)
+	var path := full_path()
+	_astar.set_point_solid(at, false)
+	return path
+
+
 func place(at: Vector2i, tower: Variant) -> void:
 	towers[at] = tower
 	if map.cell(at) != MapData.Cell.HIGH:

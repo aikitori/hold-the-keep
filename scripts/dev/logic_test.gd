@@ -20,6 +20,14 @@ func _ready() -> void:
 	var board := Board.new(map)
 	var path := board.full_path()
 	_check(path.size() > 40 and path[-1] == map.keep, "Weg vom Friedhof zur Burg führt durch alle Felder (%d Schritte)" % path.size())
+	var grass_step := Vector2i(-1, -1)
+	for cell in path:
+		if map.cell(cell) == MapData.Cell.GRASS:
+			grass_step = cell
+			break
+	var preview := board.full_path_with(grass_step)
+	_check(not preview.has(grass_step) and preview[-1] == map.keep and board.full_path() == path,
+			"Wegvorschau umgeht das geplante Feld und ändert den Weg nicht")
 	_check(board.check_build(Vector2i(19, 10)) == Board.BuildCheck.NOT_GRASS, "Auf dem festen Weg kann nicht gebaut werden")
 	_check(board.check_build(Vector2i(0, 0)) == Board.BuildCheck.NOT_GRASS, "Im Wald kann nicht gebaut werden")
 	# Ausgang von Feld A (x 17, y 2..11) zumauern: der letzte Stein muss abgelehnt werden.

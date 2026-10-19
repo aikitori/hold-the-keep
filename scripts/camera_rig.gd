@@ -5,7 +5,7 @@ extends Node3D
 
 const MIN_SIZE := 7.0
 const MAX_SIZE := 26.0
-const DISTANCE := 40.0
+const DISTANCE := 25.0
 
 var camera := Camera3D.new()
 var bounds := Rect2(0, 0, 40, 26)

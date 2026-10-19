@@ -27,6 +27,10 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
 - `scripts/ui_scale.gd` (Autoload `UiScale`): vergrößert die Oberfläche auf Touch-Geräten, `narrow` im
   Hochformat. HUD und Menü hängen an `UiScale.changed`. Am Rechner testen mit `-- --touch-ui` und
   `--resolution 864x1920`.
+- `scripts/figure.gd` (`Figure.create(key)`): animierte Figur. Skelett-Figuren werden beim ersten Gebrauch
+  in Einzelbilder umgerechnet (Autoload `FigureStage` als Platz im Szenenbaum), weil Skinning auf manchen
+  Handy-Browsern unsichtbar bleibt. Headless bleibt das Originalmodell.
+- `scripts/path_view.gd`: Pfeilspur des Gegnerwegs, Vorschau beim Bauen über `Board.full_path_with`.
 - `scripts/camera_rig.gd`: isometrische Orthokamera (45°, 35,26° von oben), Verschieben und Zoomen.
 
 ## Inhalte
@@ -44,6 +48,8 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
 - **Web-Export ohne Threads.** Schatten und MSAA sind an, auf schwachen Geräten ggf. abschalten.
 - Headless-Tests rendern nichts. Screenshots brauchen ein Fenster oder Xvfb, Software-Rendering ist langsam:
   im Screenshot-Skript mit `Engine.time_scale` vorspulen statt viele Bilder abzuwarten.
+- **Kein Skinning im Handy-Browser.** Neue Figuren mit Skelett immer über `Figure.create` laden.
+- **Boden wirft keinen Schatten** (sonst Schatten-Akne: Streifen und helle Dreiecke).
 - Freigegebene Gegner gelten in Godot 4 nicht als `null`: `is_instance_valid` oder `alive` prüfen.
 - Versionsnummer: `project.godot` (`config/version`) und `export_presets.cfg` (`version/name`, `version/code`)
   gemeinsam erhöhen.

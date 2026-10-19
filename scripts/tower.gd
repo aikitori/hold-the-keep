@@ -59,12 +59,10 @@ static func build_model(tower_id: StringName, tower_level: int, spec := &"") -> 
 	root.add_child(weapon)
 	var grow := 1.0 + 0.12 * (tower_level - 1) + (0.15 if spec != &"" else 0.0)
 	if def.has("unit"):
-		var unit := Models.make(def["unit"])
+		var unit := Figure.create(def["unit"])
 		unit.scale = Vector3.ONE * 1.1 * grow
 		weapon.add_child(unit)
-		for node in unit.find_children("*", "AnimationPlayer", true, false):
-			if (node as AnimationPlayer).has_animation("idle"):
-				(node as AnimationPlayer).play("idle")
+		unit.play("idle")
 		var side := 1.0
 		var props: Array = def.get("props", [])
 		if spec in [&"knight", &"pike"]:

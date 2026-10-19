@@ -25,7 +25,7 @@ var _slow_time := 0.0
 var _burn := 0.0
 var _burn_time := 0.0
 var _lift := 0.0
-var _anim: AnimationPlayer
+var _anim: Figure
 var _bob := randf() * TAU
 var _fire: Node3D
 
@@ -42,16 +42,12 @@ func setup(enemy_kind: StringName, wave: int, main: Node, field: Board) -> void:
 	is_boss = def.get("boss", false)
 	air = def.get("air", false)
 	_lift = def["lift"]
-	var model := Models.make(def["model"])
+	_anim = Figure.create(def["model"])
 	var size: float = def.get("size", 1.0) * 1.15
-	model.scale = Vector3(size, size, size)
-	add_child(model)
-	for node in model.find_children("*", "AnimationPlayer", true, false):
-		_anim = node
-		break
-	if _anim != null and _anim.has_animation("walk"):
-		_anim.play("walk")
-		_anim.speed_scale = speed * 1.4
+	_anim.scale = Vector3(size, size, size)
+	add_child(_anim)
+	_anim.speed_scale = speed * 1.4
+	_anim.play("walk")
 	if air:
 		var shadow := MeshInstance3D.new()
 		var disc := CylinderMesh.new()
@@ -123,9 +119,8 @@ func _die() -> void:
 	alive = false
 	game.enemy_killed(self)
 	Sfx.play_at(&"boss_die" if is_boss else &"bones" if kind == &"skeleton" else &"ghost" if air else &"die", position)
-	if _anim != null and _anim.has_animation("die"):
-		_anim.speed_scale = 1.0
-		_anim.play("die")
+	_anim.speed_scale = 1.0
+	_anim.play("die")
 	var tween := create_tween()
 	tween.tween_interval(0.7)
 	tween.tween_property(self, "scale", Vector3(0.01, 0.01, 0.01), 0.25)

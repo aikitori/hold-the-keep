@@ -27,6 +27,7 @@ var _ghost: Node3D
 var _ghost_id: StringName = &""
 var _ghost_cell := Vector2i(-99, -99)
 var _ring := MeshInstance3D.new()
+var _path_view := PathView.new()
 var _down_pos := Vector2.ZERO
 var _dragging := false
 var _pressed := false
@@ -45,6 +46,8 @@ func _ready() -> void:
 	rig.bounds = Rect2(0, 0, map.size.x - 1, map.size.y - 1)
 	add_child(rig)
 	rig.position = Board.world_of(map.spawn).lerp(Board.world_of(map.size / 2), 0.4)
+	add_child(_path_view)
+	_path_view.show_path(board.full_path())
 	_ring.mesh = _ring_mesh()
 	_ring.visible = false
 	add_child(_ring)
@@ -71,9 +74,11 @@ func _ready() -> void:
 func _build_lighting() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52, -25, 0)
-	sun.light_energy = 1.1
+	sun.light_energy = 1.0
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 45.0
+	# Schatten müssen das ganze Bild abdecken (Kameraabstand plus Bildtiefe bei weitestem Zoom).
+	sun.directional_shadow_max_distance = CameraRig.DISTANCE + 60.0
+	sun.directional_shadow_blend_splits = true
 	add_child(sun)
 	var env := WorldEnvironment.new()
 	env.environment = Environment.new()
@@ -81,7 +86,7 @@ func _build_lighting() -> void:
 	env.environment.background_color = Color("#1d2a24")
 	env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.environment.ambient_light_color = Color("#c9c2b4")
-	env.environment.ambient_light_energy = 0.55
+	env.environment.ambient_light_energy = 0.48
 	add_child(env)
 
 
@@ -137,6 +142,14 @@ func _build_terrain() -> void:
 			multi.set_instance_transform(i, (list[i] as Transform3D) * (info[1] as Transform3D))
 		var node := MultiMeshInstance3D.new()
 		node.multimesh = multi
+		if key.begins_with("td/tile"):
+			# Flacher Boden wirft keinen Schatten: sonst beschattet er sich selbst (Streifen und Dreiecke).
+			node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if key == "td/tile":
+			# Kenney-Gras ist sehr hell mintgrün, etwas satter und dunkler wirkt es mehr wie Wiese.
+			var grass: StandardMaterial3D = (info[0] as Mesh).surface_get_material(0).duplicate()
+			grass.albedo_color = Color(0.9, 0.74, 0.52)
+			node.material_override = grass
 		add_child(node)
 
 
@@ -185,6 +198,8 @@ func _build_landmarks() -> void:
 		number.outline_size = 18
 		number.modulate = Hud.GOLD
 		number.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		number.pixel_size = 0.009
+		number.no_depth_test = true
 		number.position = Board.world_of(map.waypoints[i], 1.4)
 		add_child(number)
 	var crypt := Models.make("graveyard/crypt")
@@ -197,6 +212,49 @@ func _build_landmarks() -> void:
 			var stone := Models.make(["graveyard/gravestone-cross", "graveyard/gravestone-round", "graveyard/lantern-candle"][_hash(at) % 3])
 			stone.position = Board.world_of(at, 0.2)
 			add_child(stone)
+	_beacon(map.spawn, "Start", Color("#e0533d"), 2.2)
+	_beacon(map.keep, "Ziel", Hud.GOLD, y + 0.6)
+
+
+## Deutliche Marke: Schild über dem Feld (immer sichtbar, auch hinter Türmen) und ein pulsierender Ring.
+func _beacon(at: Vector2i, text: String, color: Color, height: float) -> void:
+	var label := Label3D.new()
+	label.text = text
+	label.font = Hud.FONT
+	label.font_size = 120
+	label.outline_size = 26
+	label.outline_modulate = Hud.INK
+	label.modulate = color
+	label.pixel_size = 0.011
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.render_priority = 2
+	label.outline_render_priority = 1
+	label.position = Board.world_of(at, height)
+	add_child(label)
+	var ring := MeshInstance3D.new()
+	var torus := TorusMesh.new()
+	torus.inner_radius = 0.8
+	torus.outer_radius = 1.0
+	torus.rings = 48
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.albedo_color = Color(color, 0.8)
+	torus.material = material
+	ring.mesh = torus
+	ring.scale = Vector3(1, 0.05, 1)
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	ring.position = Board.world_of(at, 0.23)
+	add_child(ring)
+	var pulse := ring.create_tween().set_loops()
+	pulse.tween_property(ring, "scale", Vector3(1.5, 0.05, 1.5), 0.9).set_trans(Tween.TRANS_SINE)
+	pulse.parallel().tween_property(material, "albedo_color:a", 0.15, 0.9)
+	pulse.tween_property(ring, "scale", Vector3(1, 0.05, 1), 0.0)
+	pulse.parallel().tween_property(material, "albedo_color:a", 0.8, 0.0)
+	var bob := label.create_tween().set_loops()
+	bob.tween_property(label, "position:y", height + 0.25, 0.8).set_trans(Tween.TRANS_SINE)
+	bob.tween_property(label, "position:y", height, 0.8).set_trans(Tween.TRANS_SINE)
 
 
 func _ring_mesh() -> Mesh:
@@ -303,6 +361,7 @@ func _cycle_speed() -> void:
 
 
 func _on_board_changed() -> void:
+	_path_view.show_path(board.full_path())
 	for enemy in enemies:
 		if enemy.alive:
 			enemy.repath()
@@ -426,6 +485,7 @@ func _on_build_selected(id: StringName) -> void:
 	_ghost_id = id
 	_ghost_cell = Vector2i(-99, -99)
 	_ring.visible = false
+	_path_view.show_path(board.full_path())
 	if id == &"":
 		return
 	_ghost = Tower.build_model(id, 1)
@@ -442,6 +502,10 @@ func _move_ghost(at: Vector2i) -> void:
 	_ghost.position = Board.world_of(at, Tower.HIGH - Tower.GROUND if map.cell(at) == MapData.Cell.HIGH else 0.0)
 	var ok: bool = board.check_build(at, walkers()) == Board.BuildCheck.OK and gold >= Defs.TOWERS[_ghost_id]["cost"]
 	Models.tint(_ghost, Color(0.4, 1.0, 0.5, 0.55) if ok else Color(1.0, 0.3, 0.25, 0.55))
+	if ok:
+		_path_view.show_path(board.full_path_with(at), true)
+	else:
+		_path_view.show_path(board.full_path())
 	_show_ring(_ghost.position, Defs.tower_range(_ghost_id, 1))
 	_ring.visible = _ghost.visible and Defs.tower_range(_ghost_id, 1) > 0.0
 

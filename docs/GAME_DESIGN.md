@@ -70,6 +70,14 @@ Ziel ist immer der Gegner in Reichweite mit dem kürzesten Restweg zur Burg.
 - **Schlangenpfad** (32x22): fester Weg in Schleifen durch die Hochfläche, kein Labyrinth.
 - **Weites Feld** (38x24): offenes Feld, drei Kontrollpunkte oben und unten.
 
+## Anzeige
+
+- Der Weg der Bodengegner liegt als Pfeilspur auf dem Boden, ein Lichtlauf zeigt die Laufrichtung.
+- Beim Bauen zeigt eine helle Spur den Weg, der mit dem Turm an dieser Stelle entstehen würde.
+- Start (Friedhof) und Ziel (Burg) tragen große Schilder, die nie verdeckt werden, und pulsierende Ringe.
+- Figuren mit Skelett (Mini Dungeon) werden als Daumenkino aus vorab umgerechneten Meshes gezeigt
+  (`scripts/figure.gd`), weil manche Handy-Browser kein Skinning zeichnen.
+
 ## Klänge
 
 Jeder Turm hat einen Schussklang (Pfeil, Bolzen, Wurf, Feuer, Magie, Blitz, Stoß), dazu Einschläge,

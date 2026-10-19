@@ -5,8 +5,8 @@ extends RefCounted
 const START_GOLD := 90
 const START_LIVES := 20
 const WAVES := 30
-const FIRST_WAVE_DELAY := 25.0
-const WAVE_BREAK := 15.0
+const FIRST_WAVE_DELAY := 45.0
+const WAVE_BREAK := 25.0
 const SPAWN_GAP := 0.6
 const SELL_SHARE := 0.7
 const MAX_LEVEL := 3

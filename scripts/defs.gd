@@ -7,7 +7,7 @@ const START_LIVES := 20
 const WAVES := 30
 const FIRST_WAVE_DELAY := 25.0
 const WAVE_BREAK := 15.0
-const SPAWN_GAP := 0.9
+const SPAWN_GAP := 0.6
 const SELL_SHARE := 0.7
 const MAX_LEVEL := 3
 ## Pro Stufe: Schaden x1,7, Reichweite +0,4, Nachladen x0,9. Ausbau kostet 80 % bzw. 130 % des Grundpreises.
@@ -115,11 +115,11 @@ const SPECS := {
 ## model: Figur, lift: Höhe über dem Boden (manche Figuren stehen tiefer im Modell), air: fliegt geradeaus
 ## über alles hinweg (von Kontrollpunkt zu Kontrollpunkt).
 const ENEMIES := {
-	&"skeleton": {"name": "Skelett", "model": "graveyard/character-skeleton", "hp": 28.0, "speed": 1.5, "gold": 2, "lift": 0.2},
-	&"bandit": {"name": "Räuber", "model": "dungeon/character-human", "hp": 45.0, "speed": 1.2, "gold": 2, "lift": 0.0},
-	&"zombie": {"name": "Zombie", "model": "graveyard/character-zombie", "hp": 75.0, "speed": 0.8, "gold": 3, "lift": 0.2},
-	&"orc": {"name": "Ork", "model": "dungeon/character-orc", "hp": 110.0, "speed": 1.0, "gold": 4, "lift": 0.0},
-	&"ghost": {"name": "Geist", "model": "graveyard/character-ghost", "hp": 55.0, "speed": 1.3, "gold": 3, "lift": 1.4, "air": true},
+	&"skeleton": {"name": "Skelett", "model": "graveyard/character-skeleton", "hp": 21.0, "speed": 1.5, "gold": 2, "lift": 0.2},
+	&"bandit": {"name": "Räuber", "model": "dungeon/character-human", "hp": 34.0, "speed": 1.2, "gold": 2, "lift": 0.0},
+	&"zombie": {"name": "Zombie", "model": "graveyard/character-zombie", "hp": 56.0, "speed": 0.8, "gold": 3, "lift": 0.2},
+	&"orc": {"name": "Ork", "model": "dungeon/character-orc", "hp": 82.0, "speed": 1.0, "gold": 4, "lift": 0.0},
+	&"ghost": {"name": "Geist", "model": "graveyard/character-ghost", "hp": 41.0, "speed": 1.3, "gold": 3, "lift": 1.4, "air": true},
 	&"vampire": {"name": "Vampir", "model": "graveyard/character-vampire", "hp": 650.0, "speed": 0.9, "gold": 30, "lift": 0.2, "boss": true, "size": 1.8},
 	&"keeper": {"name": "Totengräber", "model": "graveyard/character-keeper", "hp": 1600.0, "speed": 0.75, "gold": 70, "lift": 0.2, "boss": true, "size": 2.2},
 }
@@ -137,17 +137,17 @@ static func is_air_wave(number: int) -> bool:
 static func wave(number: int) -> Array[StringName]:
 	var out: Array[StringName] = []
 	if is_air_wave(number):
-		for i in 6 + number / 3:
+		for i in 10 + number / 2:
 			out.append(&"ghost")
 		return out
 	var kind: StringName = WAVE_CYCLE[(number - 1) % WAVE_CYCLE.size()]
-	var count := 8 + number / 2
+	var count := 12 + number * 4 / 5
 	if number % 10 == 0:
 		out.append(&"keeper")
-		count = 6
+		count = 10
 	elif number % 5 == 0:
 		out.append(&"vampire")
-		count = 6
+		count = 10
 	for i in count:
 		# Ab Welle 11 mischt sich die nächste Art dazu, ab Welle 16 auch ein paar Geister.
 		var mix: StringName = WAVE_CYCLE[number % WAVE_CYCLE.size()]

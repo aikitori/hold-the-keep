@@ -13,6 +13,8 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 - Gegner, die die Burg erreichen, kosten 1 Leben, Bosse 5. Bei 0 Leben fällt die Burg.
 - Gold gibt es für jeden besiegten Gegner (Grundwert plus 1 je 6 Wellen).
 - Lebenspunkte der Gegner wachsen je Welle um 13 %.
+- Bodenwellen: 12 Gegner plus 4 je 5 Wellen (Welle 28: 34), Luftwellen 10 plus 1 je 2 Wellen, Bosse mit 10
+  Begleitern. Abstand beim Erscheinen 0,6 s.
 
 ## Wellen
 

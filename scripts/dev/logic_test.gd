@@ -124,9 +124,11 @@ func _play() -> void:
 	Engine.time_scale = 8.0
 	main.countdown = 0.1
 	var waited := 0.0
+	var early := false
 	while main.wave < 4 and waited < 300.0:
 		await get_tree().process_frame
 		waited += get_process_delta_time()
+		early = early or (main.countdown > 0.0 and not main.enemies.is_empty())
 		if main.countdown > 0.0 and main.wave < 4:
 			main.call_next_wave()
 	for i in 600:
@@ -135,6 +137,7 @@ func _play() -> void:
 		await get_tree().process_frame
 	Engine.time_scale = 1.0
 	_check(main.kills > 10, "Türme töten Gegner (%d, Leben %d)" % [main.kills, main.lives])
+	_check(not early, "Pause erst, wenn die Welle besiegt ist")
 	_check(main.wave >= 4, "Vier Wellen gespielt, auch eine Luftwelle (%d)" % main.wave)
 	var gold_before: int = main.gold
 	main.select_tower(tower)

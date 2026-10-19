@@ -8,8 +8,8 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 
 ## Ablauf
 
-- Start: 90 Gold, 20 Leben, 30 Wellen. Erste Welle nach 45 s, danach 25 s Pause nach dem letzten Gegner einer
-  Welle. "Nächste Welle" startet sofort und gibt die halbe Restzeit in Sekunden als Gold.
+- Start: 90 Gold, 20 Leben, 30 Wellen. Erste Welle nach 45 s, danach 25 s Pause, sobald der letzte Gegner einer
+  Welle besiegt ist oder die Burg erreicht hat. "Nächste Welle" startet sofort und gibt die halbe Restzeit in Sekunden als Gold.
 - Gegner, die die Burg erreichen, kosten 1 Leben, Bosse 5. Bei 0 Leben fällt die Burg.
 - Gold gibt es für jeden besiegten Gegner (Grundwert plus 1 je 6 Wellen).
 - Lebenspunkte der Gegner wachsen je Welle um 13 %.

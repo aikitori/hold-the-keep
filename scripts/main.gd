@@ -286,14 +286,16 @@ func _process(delta: float) -> void:
 		if _spawn_timer <= 0.0:
 			_spawn(_queue.pop_front())
 			_spawn_timer = Defs.SPAWN_GAP
-			if _queue.is_empty() and wave < Defs.WAVES:
-				countdown = Defs.WAVE_BREAK
 	elif countdown > 0.0:
 		countdown -= delta
 		if countdown <= 0.0:
 			_start_wave()
-	elif wave >= Defs.WAVES and enemies.is_empty():
-		_finish(true)
+	elif enemies.is_empty():
+		# Die Pause beginnt erst, wenn der letzte Gegner der Welle besiegt ist oder die Burg erreicht hat.
+		if wave >= Defs.WAVES:
+			_finish(true)
+		else:
+			countdown = Defs.WAVE_BREAK
 	hud.update_stats(gold, lives, wave, countdown if _queue.is_empty() else 0.0, _speed)
 	if _selected != null:
 		hud.show_tower(_selected, gold)

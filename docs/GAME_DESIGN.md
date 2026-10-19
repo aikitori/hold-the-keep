@@ -13,15 +13,34 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 - Gegner, die die Burg erreichen, kosten 1 Leben, Bosse 5. Bei 0 Leben fällt die Burg.
 - Gold gibt es für jeden besiegten Gegner (Grundwert plus 1 je 6 Wellen).
 - Lebenspunkte der Gegner wachsen je Welle um 13 %.
-- Bodenwellen: 12 Gegner plus 4 je 5 Wellen (Welle 28: 34), Luftwellen 10 plus 1 je 2 Wellen, Bosse mit 10
-  Begleitern. Abstand beim Erscheinen 0,6 s.
+- Bodenwellen: 12 Plätze plus 4 je 5 Wellen, Luftwellen 10 Geister plus 1 je 2 Wellen, Bosse mit 10 plus 1 je
+  5 Wellen Begleitern. Abstand beim Erscheinen 0,6 s.
 
 ## Wellen
 
-- Bodenwellen wechseln reihum: Skelett (schnell, schwach), Räuber, Zombie (langsam, zäh), Ork (stark).
-  Ab Welle 11 mischt sich die nächste Art dazu, ab Welle 16 ein paar Geister.
-- Luftwellen 4, 9, 14, ...: nur Geister. Sie fliegen geradeaus von Kontrollpunkt zu Kontrollpunkt über alles
-  hinweg und werfen einen Schatten.
+- Wellen 1 bis 5 haben je eine Art: Skelett, Räuber, Zombie, Luftwelle, Boss mit Skeletten.
+- Ab Welle 6 kommen gemischte Gruppen (je 3 bis 5 gleiche Gegner abwechselnd): 2 Arten, ab Welle 11 drei, ab
+  Welle 21 vier. Ab Welle 16 sind Flieger dazwischen. Ab Welle 15 sind auch die Bossbegleiter gemischt. Eine
+  neue Art kommt in ihrer ersten Welle sicher vor. Die Zusammenstellung hängt nur von der Wellennummer ab.
+- Arten (ab Welle):
+
+  | Art | ab | Eigenschaft |
+  |---|---|---|
+  | Skelett | 1 | schnell, schwach |
+  | Räuber | 2 | ausgewogen |
+  | Zombie | 3 | langsam, zäh |
+  | Ork | 6 | stark |
+  | Dieb | 7 | sehr schnell, wenig Leben (grün) |
+  | Knochenwicht | 8 | klein, kommt im Rudel zu zweit |
+  | Ghul | 11 | heilt 5 % je Sekunde, außer wenn er brennt (hellgrün) |
+  | Schwarzer Ritter | 12 | Rüstung 6 (dunkel) |
+  | Irrlicht | 14 | Flieger, schnell, schwach (blau) |
+  | Orkhäuptling | 17 | groß, zäh, Rüstung 4 (rot) |
+
+- Rüstung zieht von jedem Treffer ab, höchstens 75 %. Magie und Feuer gehen durch. Gegen Rüstung helfen
+  schwere Treffer (Balliste, Katapult) oder der Magierturm.
+- Luftwellen 4, 9, 14, ...: Geister, ab Welle 14 auch Irrlichter. Sie fliegen geradeaus von Kontrollpunkt zu
+  Kontrollpunkt über alles hinweg und werfen einen Schatten.
 - Bosse: Vampir in Welle 5, 15, 25, Totengräber in Welle 10, 20, 30, jeweils mit Begleitung.
 
 ## Bauen
@@ -74,7 +93,8 @@ Ziel ist immer der Gegner in Reichweite mit dem kürzesten Restweg zur Burg.
 
 ## Anzeige
 
-- Der Weg der Bodengegner liegt als Pfeilspur auf dem Boden, ein Lichtlauf zeigt die Laufrichtung.
+- Der Weg der Bodengegner liegt als gelbe Pfeilspur mit dunklem Rand auf dem Boden, ein Lichtlauf zeigt die
+  Laufrichtung.
 - Beim Bauen zeigt eine helle Spur den Weg, der mit dem Turm an dieser Stelle entstehen würde.
 - Start (Friedhof) und Ziel (Burg) tragen große Schilder, die nie verdeckt werden, und pulsierende Ringe.
 - Figuren mit Skelett (Mini Dungeon) werden als Daumenkino aus vorab umgerechneten Meshes gezeigt

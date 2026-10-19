@@ -113,17 +113,34 @@ const SPECS := {
 }
 
 ## model: Figur, lift: Höhe über dem Boden (manche Figuren stehen tiefer im Modell), air: fliegt geradeaus
-## über alles hinweg (von Kontrollpunkt zu Kontrollpunkt).
+## über alles hinweg (von Kontrollpunkt zu Kontrollpunkt). tint: Färbung (multipliziert), armor: zieht so viel
+## von jedem Treffer ab (höchstens 75 %, Magie und Feuer gehen durch), regen: heilt Anteil der Lebenspunkte
+## je Sekunde, solange er nicht brennt. from: erste Welle, in der die Art in gemischten Wellen vorkommt.
 const ENEMIES := {
-	&"skeleton": {"name": "Skelett", "model": "graveyard/character-skeleton", "hp": 21.0, "speed": 1.5, "gold": 2, "lift": 0.2},
-	&"bandit": {"name": "Räuber", "model": "dungeon/character-human", "hp": 34.0, "speed": 1.2, "gold": 2, "lift": 0.0},
-	&"zombie": {"name": "Zombie", "model": "graveyard/character-zombie", "hp": 56.0, "speed": 0.8, "gold": 3, "lift": 0.2},
-	&"orc": {"name": "Ork", "model": "dungeon/character-orc", "hp": 82.0, "speed": 1.0, "gold": 4, "lift": 0.0},
+	&"skeleton": {"name": "Skelett", "model": "graveyard/character-skeleton", "hp": 21.0, "speed": 1.5, "gold": 2, "lift": 0.2, "from": 1},
+	&"bandit": {"name": "Räuber", "model": "dungeon/character-human", "hp": 34.0, "speed": 1.2, "gold": 2, "lift": 0.0, "from": 2},
+	&"zombie": {"name": "Zombie", "model": "graveyard/character-zombie", "hp": 56.0, "speed": 0.8, "gold": 3, "lift": 0.2, "from": 3},
+	&"orc": {"name": "Ork", "model": "dungeon/character-orc", "hp": 82.0, "speed": 1.0, "gold": 4, "lift": 0.0, "from": 6},
+	&"runner": {"name": "Dieb", "model": "dungeon/character-human", "hp": 20.0, "speed": 2.1, "gold": 2, "lift": 0.0,
+		"size": 0.85, "tint": Color(0.55, 0.75, 0.5), "from": 7},
+	&"swarm": {"name": "Knochenwicht", "model": "graveyard/character-skeleton", "hp": 9.0, "speed": 1.8, "gold": 1,
+		"lift": 0.13, "size": 0.62, "tint": Color(1.0, 0.85, 0.6), "pack": 2, "from": 8},
+	&"ghoul": {"name": "Ghul", "model": "graveyard/character-zombie", "hp": 64.0, "speed": 1.0, "gold": 4, "lift": 0.2,
+		"tint": Color(0.6, 0.95, 0.55), "regen": 0.05, "from": 11},
+	&"knight": {"name": "Schwarzer Ritter", "model": "dungeon/character-human", "hp": 80.0, "speed": 0.9, "gold": 5,
+		"lift": 0.0, "size": 1.1, "tint": Color(0.42, 0.42, 0.52), "armor": 6.0, "from": 12},
+	&"warlord": {"name": "Orkhäuptling", "model": "dungeon/character-orc", "hp": 230.0, "speed": 0.8, "gold": 9,
+		"lift": 0.0, "size": 1.35, "tint": Color(1.0, 0.55, 0.5), "armor": 4.0, "from": 17},
 	&"ghost": {"name": "Geist", "model": "graveyard/character-ghost", "hp": 41.0, "speed": 1.3, "gold": 3, "lift": 1.4, "air": true},
+	&"wisp": {"name": "Irrlicht", "model": "graveyard/character-ghost", "hp": 20.0, "speed": 2.0, "gold": 2, "lift": 1.6,
+		"air": true, "size": 0.7, "tint": Color(0.55, 0.85, 1.0), "from": 14},
 	&"vampire": {"name": "Vampir", "model": "graveyard/character-vampire", "hp": 650.0, "speed": 0.9, "gold": 30, "lift": 0.2, "boss": true, "size": 1.8},
 	&"keeper": {"name": "Totengräber", "model": "graveyard/character-keeper", "hp": 1600.0, "speed": 0.75, "gold": 70, "lift": 0.2, "boss": true, "size": 2.2},
 }
+## Erste Wellen und Begleiter der Bosse: eine Art reihum.
 const WAVE_CYCLE: Array[StringName] = [&"skeleton", &"bandit", &"zombie", &"orc"]
+## Arten für gemischte Wellen (ab Welle 6).
+const MIXED: Array[StringName] = [&"skeleton", &"bandit", &"zombie", &"orc", &"runner", &"swarm", &"ghoul", &"knight", &"warlord"]
 ## Luftwellen: 4, 9, 14, ... (jede fünfte, eine vor dem Boss).
 const AIR_WAVE_EVERY := 5
 const AIR_WAVE_OFFSET := 4
@@ -133,29 +150,60 @@ static func is_air_wave(number: int) -> bool:
 	return number % AIR_WAVE_EVERY == AIR_WAVE_OFFSET
 
 
-## Gegner einer Welle (1-basiert) in der Reihenfolge, in der sie erscheinen.
+## Gegner einer Welle (1-basiert) in der Reihenfolge, in der sie erscheinen. Ab Welle 6 kommen gemischte
+## Gruppen: 2 Arten, ab Welle 11 drei, ab Welle 21 vier, dazu ab Welle 16 ein paar Flieger. Der Zufall hängt
+## nur von der Wellennummer ab, jede Welle ist also in jedem Spiel gleich.
 static func wave(number: int) -> Array[StringName]:
 	var out: Array[StringName] = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = number * 7919 + 17
 	if is_air_wave(number):
 		for i in 10 + number / 2:
-			out.append(&"ghost")
+			out.append(&"wisp" if number >= ENEMIES[&"wisp"]["from"] and i % 3 == 1 else &"ghost")
 		return out
-	var kind: StringName = WAVE_CYCLE[(number - 1) % WAVE_CYCLE.size()]
 	var count := 12 + number * 4 / 5
-	if number % 10 == 0:
-		out.append(&"keeper")
-		count = 10
-	elif number % 5 == 0:
-		out.append(&"vampire")
-		count = 10
-	for i in count:
-		# Ab Welle 11 mischt sich die nächste Art dazu, ab Welle 16 auch ein paar Geister.
-		var mix: StringName = WAVE_CYCLE[number % WAVE_CYCLE.size()]
-		if number > 15 and i % 5 == 4:
-			out.append(&"ghost")
-		else:
-			out.append(mix if number > 10 and i % 3 == 2 else kind)
+	var boss := number % 5 == 0
+	if boss:
+		out.append(&"keeper" if number % 10 == 0 else &"vampire")
+		count = 10 + number / 5
+	var kinds: Array[StringName] = []
+	if number < 6 or (boss and number < 15):
+		kinds.append(WAVE_CYCLE[(number - 1) % WAVE_CYCLE.size()])
+	else:
+		var pool: Array[StringName] = MIXED.filter(func(k: StringName) -> bool: return ENEMIES[k]["from"] <= number)
+		# Die neueste Art kommt in ihrer ersten Welle sicher vor.
+		for k in pool:
+			if ENEMIES[k]["from"] == number:
+				kinds.append(k)
+		var wanted := 2 if number <= 10 else 3 if number <= 20 else 4
+		while kinds.size() < wanted:
+			var k: StringName = pool[rng.randi_range(0, pool.size() - 1)]
+			if not kinds.has(k):
+				kinds.append(k)
+	# In Gruppen von 3 bis 5 gleicher Gegner abwechselnd. Kleine Gegner kommen im Rudel (pack).
+	var slot := 0
+	var turn := 0
+	while slot < count:
+		var kind: StringName = kinds[turn % kinds.size()]
+		turn += 1
+		for i in mini(rng.randi_range(3, 5), count - slot):
+			if number > 15 and slot % 6 == 5:
+				out.append(&"wisp" if rng.randf() < 0.5 else &"ghost")
+			else:
+				for p in int(ENEMIES[kind].get("pack", 1)):
+					out.append(kind)
+			slot += 1
 	return out
+
+
+## Namen der Arten einer Welle (ohne Boss), für die Ansage.
+static func wave_names(list: Array[StringName]) -> String:
+	var names: Array[String] = []
+	for kind in list:
+		var name: String = ENEMIES[kind]["name"]
+		if not ENEMIES[kind].get("boss", false) and not names.has(name):
+			names.append(name)
+	return ", ".join(names)
 
 
 ## Lebenspunkte wachsen je Welle um 13 %.

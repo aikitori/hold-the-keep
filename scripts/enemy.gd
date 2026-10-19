@@ -28,6 +28,8 @@ var _lift := 0.0
 var _anim: Figure
 var _bob := randf() * TAU
 var _fire: Node3D
+var _armor := 0.0
+var _regen := 0.0
 
 
 func setup(enemy_kind: StringName, wave: int, main: Node, field: Board) -> void:
@@ -46,6 +48,16 @@ func setup(enemy_kind: StringName, wave: int, main: Node, field: Board) -> void:
 	var size: float = def.get("size", 1.0) * 1.15
 	_anim.scale = Vector3(size, size, size)
 	add_child(_anim)
+	if def.has("tint"):
+		# Varianten derselben Figur: Farbe darübermultiplizieren, die Textur bleibt erkennbar.
+		var overlay := StandardMaterial3D.new()
+		overlay.albedo_color = def["tint"]
+		overlay.blend_mode = BaseMaterial3D.BLEND_MODE_MUL
+		overlay.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		for mesh: MeshInstance3D in _anim.find_children("*", "MeshInstance3D", true, false):
+			mesh.material_overlay = overlay
+	_armor = def.get("armor", 0.0)
+	_regen = def.get("regen", 0.0)
 	_anim.speed_scale = speed * 1.4
 	_anim.play("walk")
 	if air:
@@ -93,9 +105,12 @@ func _update_distance() -> void:
 	distance_left = rest + board.remaining_after(leg)
 
 
-func take_damage(amount: float) -> void:
+## pierce: Magie und Feuer gehen durch die Rüstung.
+func take_damage(amount: float, pierce := false) -> void:
 	if not alive:
 		return
+	if _armor > 0.0 and not pierce:
+		amount = maxf(amount * 0.25, amount - _armor)
 	hp -= amount
 	if hp <= 0.0:
 		_die()
@@ -118,7 +133,7 @@ func apply_burn(per_second: float, seconds: float) -> void:
 func _die() -> void:
 	alive = false
 	game.enemy_killed(self)
-	Sfx.play_at(&"boss_die" if is_boss else &"bones" if kind == &"skeleton" else &"ghost" if air else &"die", position)
+	Sfx.play_at(&"boss_die" if is_boss else &"bones" if kind in [&"skeleton", &"swarm"] else &"ghost" if air else &"die", position)
 	_anim.speed_scale = 1.0
 	_anim.play("die")
 	var tween := create_tween()
@@ -136,12 +151,14 @@ func _process(delta: float) -> void:
 			_slow = 0.0
 	if _burn_time > 0.0:
 		_burn_time -= delta
-		take_damage(_burn * delta)
+		take_damage(_burn * delta, true)
 		if _burn_time <= 0.0 and _fire != null:
 			_fire.queue_free()
 			_fire = null
 		if not alive:
 			return
+	if _regen > 0.0 and _burn_time <= 0.0:
+		hp = minf(max_hp, hp + max_hp * _regen * delta)
 	var height := GROUND + _lift
 	var step := speed * (1.0 - _slow) * delta
 	while step > 0.0:

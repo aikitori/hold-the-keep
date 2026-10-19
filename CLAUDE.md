@@ -15,7 +15,8 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
   Kontrollpunkte 1 bis 9 laufen die Gegner der Reihe nach ab, dann die Burg (`waypoints`).
 - `scripts/board.gd`: Wegfindung (AStarGrid2D, schräg nur ohne Ecken schneiden), Bauregeln (`check_build`:
   kein Abschnitt darf versperrt, kein Gegner eingesperrt werden), Abschnittslängen für die Zielwahl.
-- `scripts/defs.gd`: alle Werte: `TOWERS`, `SPECS` (zwei Spezialisierungen je Turm auf Stufe 3), `ENEMIES`, Wellen.
+- `scripts/defs.gd`: alle Werte: `TOWERS`, `SPECS` (zwei Spezialisierungen je Turm auf Stufe 3), `ENEMIES`
+  (Varianten derselben Figur über `tint`, `size`, `armor`, `regen`, `pack`), Wellen (`wave`, gemischt ab Welle 6).
 - `scripts/tower.gd`, `enemy.gd`, `projectile.gd`: Türme (Modell aus Teilen oder Figur), Gegner (Abschnitt für
   Abschnitt, Fliegende geradeaus), Geschosse (Pfeil, Bolzen, Fels im Bogen, Magie, Feuer, Kettenblitz).
 - `scripts/hud.gd`: Oberfläche im Code gebaut (Holz und Pergament, `Hud.make_theme()`), Turmbilder per
@@ -58,7 +59,7 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
 
 ```bash
 godot --headless res://scenes/dev/logic_test.tscn   # Wege, Bauregeln, Karten, Ausbau, vier Wellen im Zeitraffer
-godot res://scenes/dev/shot.tscn -- <Ordner> <menu|icon|vier_felder|rundlauf|schlangenpfad|weites_feld>
+godot res://scenes/dev/shot.tscn -- <Ordner> <menu|icon|gegner|vier_felder|rundlauf|schlangenpfad|weites_feld>
 ```
 
 Ausgabe prüfen auf `LOGIC-TEST OK`, keine Zeilen mit `FAIL` oder `SCRIPT ERROR`. Die CI führt den Test aus.

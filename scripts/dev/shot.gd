@@ -15,6 +15,9 @@ func _ready() -> void:
 		get_viewport().get_texture().get_image().save_png(folder + "/menu.png")
 		get_tree().quit()
 		return
+	if what == "gegner":
+		await _enemies(folder)
+		return
 	Main.map_id = StringName(what)
 	var main: Main = load("res://scenes/main.tscn").instantiate()
 	add_child(main)
@@ -70,6 +73,30 @@ func _ready() -> void:
 	await _frames(2)
 	get_viewport().get_texture().get_image().save_png("%s/%s_turm.png" % [folder, what])
 	Engine.time_scale = 1.0
+	get_tree().quit()
+
+
+## Alle Gegnerarten in einer Reihe (zum Vergleich der Varianten).
+func _enemies(folder: String) -> void:
+	Main.map_id = &"weites_feld"
+	var main: Main = load("res://scenes/main.tscn").instantiate()
+	add_child(main)
+	await _frames(2)
+	main.countdown = 1000.0
+	var center := Vector3(main.map.size.x / 2.0, 0.0, main.map.size.y / 2.0)
+	var i := 0
+	for kind: StringName in Defs.ENEMIES:
+		var enemy := Enemy.new()
+		main.add_child(enemy)
+		enemy.setup(kind, 1, main, main.board)
+		enemy.set_process(false)
+		enemy.position = center + Vector3(i * 1.3 - 7.0, enemy.position.y, -i * 1.3 + 7.0)
+		enemy.rotation.y = PI * 0.25
+		i += 1
+	main.rig.position = center
+	main.rig.camera.size = 12.0
+	await _frames(4)
+	get_viewport().get_texture().get_image().save_png(folder + "/gegner.png")
 	get_tree().quit()
 
 

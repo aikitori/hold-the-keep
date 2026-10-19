@@ -53,6 +53,15 @@ func _ready() -> void:
 	_test_maps()
 	var boss_wave := Defs.wave(5)
 	_check(boss_wave[0] == &"vampire" and Defs.wave(10)[0] == &"keeper", "Bosse in Welle 5 und 10")
+	var seen := {}
+	for n in range(1, Defs.WAVES + 1):
+		for kind in Defs.wave(n):
+			seen[kind] = true
+	_check(seen.size() == Defs.ENEMIES.size(), "Alle %d Gegnerarten kommen vor (%d)" % [Defs.ENEMIES.size(), seen.size()])
+	var mixed := {}
+	for kind in Defs.wave(12):
+		mixed[kind] = true
+	_check(mixed.size() >= 3 and Defs.wave(12) == Defs.wave(12), "Welle 12 gemischt und immer gleich")
 	_check(Defs.upgrade_cost(&"archer", 3) == -1 and Defs.upgrade_cost(&"wall", 1) == -1, "Ausbau endet bei Stufe 3, Mauern nie")
 	await _play()
 	print("LOGIC-TEST ", "FEHLGESCHLAGEN" if _failed else "OK")

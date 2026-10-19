@@ -304,8 +304,8 @@ func _start_wave() -> void:
 	countdown = 0.0
 	_queue = Defs.wave(wave)
 	_spawn_timer = 0.0
-	var boss := _queue[0] in [&"vampire", &"keeper"]
-	var label: String = ("Boss! " if boss else "") + Defs.ENEMIES[_queue[-1]]["name"]
+	var boss: bool = Defs.ENEMIES[_queue[0]].get("boss", false)
+	var label: String = ("Boss! %s mit " % Defs.ENEMIES[_queue[0]]["name"] if boss else "") + Defs.wave_names(_queue)
 	if Defs.is_air_wave(wave):
 		label = "Luftangriff! Geister fliegen über das Labyrinth"
 	hud.toast("Welle %d: %s" % [wave, label])

@@ -4,7 +4,7 @@ extends Node3D
 ## eine helle Vorschau den Weg, der mit dem neuen Turm entstehen würde.
 
 const HEIGHT := 0.215  # knapp über der Bodenkachel
-const COLOR := Color(1.0, 0.8, 0.25)
+const COLOR := Color(1.0, 0.78, 0.1)
 const PREVIEW_COLOR := Color(0.75, 0.95, 1.0)
 const FLOW_SPEED := 6.0  # Felder pro Sekunde
 
@@ -24,22 +24,32 @@ func _ready() -> void:
 	add_child(node)
 
 
-## Pfeil als flaches Dreieck-Paar (Winkel), Spitze zeigt nach +z.
+## Pfeil als flacher Winkel, Spitze zeigt nach +z, mit dunklem Rand darunter, damit er auf Gras und Stein
+## gleich gut zu sehen ist.
 func _arrow_mesh() -> Mesh:
+	var mesh := ArrayMesh.new()
+	_add_chevron(mesh, 1.3, 0.0, Color(0.1, 0.06, 0.02, 0.75), false, -1)
+	_add_chevron(mesh, 1.0, 0.01, Color.WHITE, true, 0)
+	return mesh
+
+
+func _add_chevron(mesh: ArrayMesh, size: float, lift: float, color: Color, tinted: bool, priority: int) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var points := [Vector3(0, 0, 0.32), Vector3(0.3, 0, -0.1), Vector3(0, 0, 0.06),
-			Vector3(0, 0, 0.32), Vector3(0, 0, 0.06), Vector3(-0.3, 0, -0.1)]
+	var points := [Vector3(0, 0, 0.36), Vector3(0.36, 0, -0.14), Vector3(0, 0, 0.04),
+			Vector3(0, 0, 0.36), Vector3(0, 0, 0.04), Vector3(-0.36, 0, -0.14)]
 	for p: Vector3 in points:
 		st.set_normal(Vector3.UP)
-		st.add_vertex(p)
+		st.add_vertex(Vector3(p.x * size, lift, (p.z - 0.11) * size + 0.11))
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.vertex_color_use_as_albedo = true
+	material.vertex_color_use_as_albedo = tinted
+	material.albedo_color = color
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	material.render_priority = priority
 	st.set_material(material)
-	return st.commit()
+	st.commit(mesh)
 
 
 func show_path(path: Array[Vector2i], preview := false) -> void:
@@ -67,5 +77,6 @@ func _update_colors() -> void:
 		var d := fposmod(i - head, 8.0)
 		var glow := maxf(0.0, 1.0 - minf(d, 8.0 - d) / 2.0)
 		var color := _color
-		color.a = 0.55 + 0.45 * glow
+		color.a = 0.8 + 0.2 * glow
+		color = color.lerp(Color.WHITE, 0.5 * glow)
 		_multi.set_instance_color(i, color)

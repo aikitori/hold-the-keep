@@ -98,7 +98,7 @@ func _apply(enemy: Enemy) -> void:
 		enemy.apply_slow(hit["slow"], hit["slow_time"])
 	if hit["burn"] > 0.0:
 		enemy.apply_burn(hit["burn"], 3.0)
-	enemy.take_damage(hit["damage"])
+	enemy.take_damage(hit["damage"], kind in ["magic", "fire"])
 
 
 ## Kettenblitz: weiter zum nächsten Gegner, der noch nicht getroffen wurde.

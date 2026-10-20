@@ -1,7 +1,7 @@
 class_name Enemy
 extends Node3D
 ## Ein Gegner: läuft Abschnitt für Abschnitt über die Kontrollpunkte zur Burg und sucht sich einen neuen
-## Weg, wenn gebaut wird. Fliegende Gegner nehmen den geraden Weg über alles hinweg.
+## Weg, wenn gebaut wird. Fliegende Gegner folgen der festen Flugroute über alles hinweg.
 
 const GROUND := 0.2
 
@@ -90,7 +90,9 @@ func goal() -> Vector2i:
 ## Neuen Weg ab der aktuellen Zelle (nach jedem Bau und nach jedem Kontrollpunkt).
 func repath() -> void:
 	if air:
-		_path = [current_cell(), goal()]
+		if not _path.is_empty() and _next < _path.size():
+			return  # Bauen ändert die Flugroute nicht
+		_path.assign(board.flight_legs[leg])
 	else:
 		_path = board.path_between(current_cell(), goal())
 	_next = 1 if _path.size() > 1 else 0
@@ -102,7 +104,7 @@ func _update_distance() -> void:
 	if _next < _path.size():
 		rest = Vector2(_path[_next].x - position.x, _path[_next].y - position.z).length()
 		rest += Board.path_length(_path.slice(_next))
-	distance_left = rest + board.remaining_after(leg)
+	distance_left = rest + (board.flight_remaining_after(leg) if air else board.remaining_after(leg))
 
 
 ## pierce: Magie und Feuer gehen durch die Rüstung.

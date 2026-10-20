@@ -39,8 +39,9 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 
 - Rüstung zieht von jedem Treffer ab, höchstens 75 %. Magie und Feuer gehen durch. Gegen Rüstung helfen
   schwere Treffer (Balliste, Katapult) oder der Magierturm.
-- Luftwellen 4, 9, 14, ...: Geister, ab Welle 14 auch Irrlichter. Sie fliegen geradeaus von Kontrollpunkt zu
-  Kontrollpunkt über alles hinweg und werfen einen Schatten.
+- Luftwellen 4, 9, 14, ...: Geister, ab Welle 14 auch Irrlichter. Sie folgen dem Grundweg der Karte (ohne
+  Türme, gerade zwischen den Knicken) über alles hinweg, auch über die Kontrollpunkte, und werfen einen Schatten.
+  Bauen ändert ihre Route nicht.
 - Bosse: Vampir in Welle 5, 15, 25, Totengräber in Welle 10, 20, 30, jeweils mit Begleitung.
 
 ## Bauen

@@ -12,6 +12,10 @@ var map: MapData
 var towers: Dictionary = {}  # Vector2i -> Tower (oder true in Tests)
 ## Länge jedes Abschnitts (Start -> 1, 1 -> 2, ..., -> Burg), nach jedem Bau neu.
 var leg_lengths: Array[float] = []
+## Flugroute je Abschnitt: Grundweg der Karte ohne Türme, nur die Knickpunkte. Fliegende folgen ihr
+## über alles hinweg, damit sie nicht auf Karten ohne Kontrollpunkte direkt in die Burg fliegen.
+var flight_legs: Array = []
+var flight_lengths: Array[float] = []
 var _astar := AStarGrid2D.new()
 
 
@@ -28,6 +32,10 @@ func _init(map_data: MapData) -> void:
 			var at := Vector2i(x, y)
 			_astar.set_point_solid(at, not walkable_terrain(at))
 	_measure_legs()
+	for leg in map.waypoints.size():
+		var route := _corners(_astar.get_id_path(leg_start(leg), map.waypoints[leg]))
+		flight_legs.append(route)
+		flight_lengths.append(path_length(route))
 
 
 func walkable_terrain(at: Vector2i) -> bool:
@@ -58,6 +66,14 @@ func remaining_after(leg: int) -> float:
 	return total
 
 
+## Restflug ab dem Ende von Abschnitt `leg` bis zur Burg.
+func flight_remaining_after(leg: int) -> float:
+	var total := 0.0
+	for i in range(leg + 1, flight_lengths.size()):
+		total += flight_lengths[i]
+	return total
+
+
 ## Ganzer Weg vom Friedhof zur Burg (für Tests und Anzeige).
 func full_path() -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
@@ -74,6 +90,18 @@ static func path_length(path: Array[Vector2i]) -> float:
 	for i in range(1, path.size()):
 		total += Vector2(path[i] - path[i - 1]).length()
 	return total
+
+
+## Nur Anfang, Ende und die Zellen, an denen der Weg die Richtung wechselt.
+static func _corners(path: Array[Vector2i]) -> Array[Vector2i]:
+	if path.size() < 3:
+		return path
+	var out: Array[Vector2i] = [path[0]]
+	for i in range(1, path.size() - 1):
+		if path[i] - path[i - 1] != path[i + 1] - path[i]:
+			out.append(path[i])
+	out.append(path[-1])
+	return out
 
 
 func nearest_walkable(at: Vector2i) -> Vector2i:

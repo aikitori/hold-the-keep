@@ -50,6 +50,10 @@ func _ready() -> void:
 	_check(maze.path_length(longer) > board.path_length(path) + 10.0,
 			"Mauern machen den Weg länger (%.1f statt %.1f)" % [maze.path_length(longer), board.path_length(path)])
 	_check(board.check_build(Vector2i(5, 5), [[Vector2i(5, 5), map.keep]]) == Board.BuildCheck.ENEMY_THERE, "Nicht auf Gegnern bauen")
+	var flight: Array = maze.flight_legs[-1]
+	_check(flight[0] == map.spawn and flight[-1] == map.keep and maze.flight_lengths[-1] > 40.0
+			and maze.flight_legs == board.flight_legs,
+			"Flieger folgen dem Grundweg durch alle Felder, Türme ändern die Route nicht (%.1f)" % maze.flight_lengths[-1])
 	_test_maps()
 	var boss_wave := Defs.wave(5)
 	_check(boss_wave[0] == &"vampire" and Defs.wave(10)[0] == &"keeper", "Bosse in Welle 5 und 10")

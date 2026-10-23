@@ -108,6 +108,12 @@ Gegner-Tod (Skelette klappern, Geister heulen, Bosse brüllen beim Auftauchen), 
 Gong zu jeder Welle und ein Jingle bei Sieg oder Niederlage. Klänge auf der Karte sind nur zu hören, wenn die
 Stelle im Bild ist; gleiche Klänge sind begrenzt (höchstens 2 bis 3 gleichzeitig, 70 ms Abstand).
 
+## Menü
+
+Eine Kachel je Karte mit Vorschau von oben (Gelände, Grundweg der Gegner, Friedhof S, Burg B und
+Kontrollpunkte), Beschreibung und Größe. Am breiten Bildschirm stehen alle Kacheln nebeneinander, sonst zu
+zweit, im Hochformat untereinander.
+
 ## Bedienung auf Touch-Geräten
 
 Mit Touchscreen wird die Oberfläche so skaliert, dass die kurze Bildschirmseite etwa 560 Einheiten hat

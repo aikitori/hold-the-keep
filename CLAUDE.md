@@ -9,6 +9,7 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
 ## Aufbau
 
 - `scenes/menu.tscn` (`scripts/menu.gd`): Kartenwahl, setzt `Main.map_id`. Hauptszene ist das Menü.
+  Kartenvorschau gezeichnet in `scripts/map_preview.gd` (`MapPreview`).
 - `scenes/main.tscn` (`scripts/main.gd`, `class_name Main`): baut die Karte (Kacheln per MultiMesh), Wellen,
   Gold, Leben, Eingabe (Maus und Touch getrennt, emulierte Mausereignisse werden ignoriert).
 - `scripts/map_data.gd`: Karten als Text (`MAPS`, Reihenfolge im Menü `ORDER`). Zeichen siehe Kopfkommentar.

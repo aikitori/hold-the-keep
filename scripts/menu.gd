@@ -1,7 +1,12 @@
 extends Control
-## Startmenü: Titel und eine Karte pro Spielfeld mit Beschreibung. Ein Klick startet das Spiel.
+## Startmenü: Titel und eine Kachel pro Spielfeld mit Vorschau und Beschreibung. Ein Klick startet das Spiel.
+## Breit stehen die Kacheln nebeneinander, sonst zu zweit, im Hochformat untereinander.
 
 const MAIN_SCENE := "res://scenes/main.tscn"
+const WIDE_CARD := 290.0
+const CARD := 420.0
+
+var _cards: Array[PanelContainer] = []
 
 
 func _ready() -> void:
@@ -43,17 +48,29 @@ func _ready() -> void:
 	grid.add_theme_constant_override("v_separation", 16)
 	column.add_child(grid)
 	for id: StringName in MapData.ORDER:
-		grid.add_child(_card(id))
-	var layout := func() -> void: grid.columns = 1 if UiScale.narrow else 2
+		_cards.append(_card(id))
+		grid.add_child(_cards[-1])
+	var layout := func() -> void:
+		var count := _cards.size()
+		var wide := get_viewport_rect().size.x >= count * (WIDE_CARD + 16) + 40
+		grid.columns = 1 if UiScale.narrow else count if wide else 2
+		_set_card_width(WIDE_CARD if wide and not UiScale.narrow else CARD)
 	UiScale.changed.connect(layout)
 	layout.call()
 
 
-func _card(id: StringName) -> Control:
+func _set_card_width(width: float) -> void:
+	for panel in _cards:
+		panel.custom_minimum_size.x = width
+		var inner := width - 20  # Innenabstand der Kachel
+		(panel.get_meta("preview") as MapPreview).set_width(inner)
+		(panel.get_meta("info") as Label).custom_minimum_size.x = inner
+
+
+func _card(id: StringName) -> PanelContainer:
 	var def: Dictionary = MapData.MAPS[id]
 	var map := MapData.load_map(id)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(420, 0)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	panel.add_child(box)
@@ -62,11 +79,15 @@ func _card(id: StringName) -> Control:
 	name.add_theme_font_size_override("font_size", 30)
 	name.add_theme_color_override("font_color", Hud.GOLD)
 	box.add_child(name)
+	var preview := MapPreview.new(map)
+	box.add_child(preview)
+	panel.set_meta("preview", preview)
 	var info := Label.new()
 	info.text = def["info"]
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	info.custom_minimum_size = Vector2(400, 0)
+	info.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(info)
+	panel.set_meta("info", info)
 	var facts := Label.new()
 	var checkpoints := map.waypoints.size() - 1
 	facts.text = "%d x %d Felder · %s" % [map.size.x, map.size.y,

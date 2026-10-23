@@ -111,8 +111,8 @@ Stelle im Bild ist; gleiche Klänge sind begrenzt (höchstens 2 bis 3 gleichzeit
 ## Menü
 
 Eine Kachel je Karte mit Vorschau von oben (Gelände, Grundweg der Gegner, Friedhof S, Burg B und
-Kontrollpunkte), Beschreibung und Größe. Am breiten Bildschirm stehen alle Kacheln nebeneinander, sonst zu
-zweit, im Hochformat untereinander.
+Kontrollpunkte), Beschreibung und Größe. Quer stehen alle Kacheln nebeneinander, im Hochformat zwei mal zwei.
+Das Menü scrollt nicht: passt es nicht auf den Bildschirm, wird es als Ganzes verkleinert.
 
 ## Bedienung auf Touch-Geräten
 

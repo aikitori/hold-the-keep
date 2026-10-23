@@ -114,6 +114,14 @@ func _test_touch_drag(main: Main) -> void:
 	var slip := Vector2(rig.ground_point(at, 0.0).x - grabbed.x, rig.ground_point(at, 0.0).z - grabbed.z).length()
 	_check(rig.position.distance_to(before) > 1.0 and slip < 0.01,
 			"Karte folgt dem Finger (%.2f Felder bewegt, Abweichung %.3f)" % [rig.position.distance_to(before), slip])
+	# Weit über den Rand hinaus, dann ein kleines Stück zurück: die Kamera muss sofort folgen.
+	for i in 100:
+		at += Vector2(-40, -40)
+		main._unhandled_input(_drag_event(0, at))
+	var corner := rig.position
+	at += Vector2(30, 30)
+	main._unhandled_input(_drag_event(0, at))
+	_check(rig.position.distance_to(corner) > 0.5, "Am Rand festgefahren, zurückziehen geht sofort (%.2f)" % rig.position.distance_to(corner))
 	var size: float = rig.camera.size
 	main._unhandled_input(_touch(1, at + Vector2(100, 0), true))
 	main._unhandled_input(_drag_event(1, at + Vector2(200, 0)))

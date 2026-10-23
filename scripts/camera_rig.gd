@@ -47,6 +47,8 @@ func drag_to(screen: Vector2) -> void:
 	var offset := _anchor - ground_point(screen, 0.0)
 	position.x = clampf(position.x + offset.x, bounds.position.x, bounds.end.x)
 	position.z = clampf(position.z + offset.z, bounds.position.y, bounds.end.y)
+	# Am Rand rutscht der Punkt weg: neu greifen, sonst klebt die Kamera beim Zurückziehen in der Ecke.
+	_anchor = ground_point(screen, 0.0)
 
 
 ## Bildschirmbewegung in Pixeln -> Bewegung auf dem Boden (Trackpad-Geste).

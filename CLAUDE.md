@@ -19,7 +19,7 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
 - `scripts/defs.gd`: alle Werte: `TOWERS`, `SPECS` (zwei Spezialisierungen je Turm auf Stufe 3), `ENEMIES`
   (Varianten derselben Figur über `tint`, `size`, `armor`, `regen`, `pack`), Wellen (`wave`, gemischt ab Welle 6).
 - `scripts/tower.gd`, `enemy.gd`, `projectile.gd`: Türme (Modell aus Teilen oder Figur), Gegner (Abschnitt für
-  Abschnitt, Fliegende geradeaus), Geschosse (Pfeil, Bolzen, Fels im Bogen, Magie, Feuer, Kettenblitz).
+  Abschnitt, Fliegende auf fester Flugroute), Geschosse (Pfeil, Bolzen, Fels im Bogen, Magie, Feuer, Kettenblitz).
 - `scripts/hud.gd`: Oberfläche im Code gebaut (Holz und Pergament, `Hud.make_theme()`), Turmbilder per
   SubViewport, Lebensbalken als 2D-Overlay.
 - `scripts/sfx.gd` (Autoload `Sfx`): Klänge aus `assets/audio/`, `Sfx.play(id)` / `Sfx.play_at(id, pos)`,

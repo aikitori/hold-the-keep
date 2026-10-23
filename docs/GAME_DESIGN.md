@@ -120,6 +120,9 @@ Mit Touchscreen wird die Oberfläche so skaliert, dass die kurze Bildschirmseite
 (am Rechner 720). Im Hochformat: zweite Zeile für die Knöpfe oben, Bauleiste in zwei Reihen, Menü einspaltig,
 die Kamera-Zoomgröße gilt dann für die Breite.
 
+Ziehen hält die Karte fest: der Punkt unter dem Finger bleibt unter dem Finger. Zwei Finger zoomen um ihre
+Mitte und verschieben zugleich, danach zieht der übrige Finger ohne Sprung weiter.
+
 ## Ideen für später
 
 - Mehr Karten (mehrere Startpunkte, Brücken über Flüsse), Schwierigkeitsgrade, Endlosmodus.

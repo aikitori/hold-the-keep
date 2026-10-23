@@ -541,7 +541,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and event.device != InputEvent.DEVICE_ID_EMULATION:
 		var mm := event as InputEventMouseMotion
 		if _pressed:
-			_drag(mm.position, mm.relative)
+			_drag(mm.position)
 		elif _ghost != null:
 			_move_ghost(Board.cell_of(rig.ground_point(mm.position)))
 	elif event is InputEventScreenTouch:
@@ -553,21 +553,28 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				_dragging = true  # zwei Finger: nie als Tipp werten
 				_pinch_distance = _finger_distance()
+				rig.grab(_finger_center())
 		else:
 			_touches.erase(touch.index)
 			if _touches.is_empty():
 				_release(touch.position, true)
+			else:
+				# Der übrige Finger greift neu, sonst springt die Karte.
+				_pinch_distance = _finger_distance()
+				rig.grab(_finger_center())
 	elif event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
+		if not _touches.has(drag.index):
+			return  # Finger, der auf der Oberfläche aufgesetzt hat
 		_touches[drag.index] = drag.position
 		if _touches.size() >= 2:
 			var distance := _finger_distance()
 			if _pinch_distance > 0.0 and distance > 0.0:
 				rig.zoom(_pinch_distance / distance)
 			_pinch_distance = distance
-			rig.pan(drag.relative / _touches.size())
+			rig.drag_to(_finger_center())
 		else:
-			_drag(drag.position, drag.relative)
+			_drag(drag.position)
 	elif event is InputEventMagnifyGesture:
 		rig.zoom(1.0 / (event as InputEventMagnifyGesture).factor)
 	elif event is InputEventPanGesture:
@@ -579,17 +586,23 @@ func _finger_distance() -> float:
 	return (points[0] as Vector2).distance_to(points[1]) if points.size() >= 2 else 0.0
 
 
+func _finger_center() -> Vector2:
+	var points: Array = _touches.values()
+	return ((points[0] as Vector2) + (points[1] as Vector2)) / 2.0 if points.size() >= 2 else points[0]
+
+
 func _press(at: Vector2) -> void:
 	_pressed = true
 	_dragging = false
 	_down_pos = at
+	rig.grab(at)
 
 
-func _drag(at: Vector2, relative: Vector2) -> void:
+func _drag(at: Vector2) -> void:
 	if not _dragging and at.distance_to(_down_pos) > DRAG_THRESHOLD:
 		_dragging = true
 	if _dragging:
-		rig.pan(relative)
+		rig.drag_to(at)
 
 
 func _release(at: Vector2, touch: bool) -> void:

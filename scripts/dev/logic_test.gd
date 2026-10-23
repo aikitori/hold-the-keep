@@ -99,11 +99,56 @@ func _test_maps() -> void:
 		_check((Defs.SPECS[id] as Array).size() == 2, "%s hat zwei Spezialisierungen" % id)
 
 
+## Ziehen mit einem Finger: der gegriffene Bodenpunkt bleibt unter dem Finger, auch in kleinen Schritten.
+## Zwei Finger zoomen, danach zieht der übrige Finger ohne Sprung weiter.
+func _test_touch_drag(main: Main) -> void:
+	var rig := main.rig
+	var start := Vector2(640, 360)
+	var grabbed := rig.ground_point(start, 0.0)
+	var before := rig.position
+	main._unhandled_input(_touch(0, start, true))
+	var at := start
+	for i in 40:
+		at += Vector2(-3, 2)
+		main._unhandled_input(_drag_event(0, at))
+	var slip := Vector2(rig.ground_point(at, 0.0).x - grabbed.x, rig.ground_point(at, 0.0).z - grabbed.z).length()
+	_check(rig.position.distance_to(before) > 1.0 and slip < 0.01,
+			"Karte folgt dem Finger (%.2f Felder bewegt, Abweichung %.3f)" % [rig.position.distance_to(before), slip])
+	var size: float = rig.camera.size
+	main._unhandled_input(_touch(1, at + Vector2(100, 0), true))
+	main._unhandled_input(_drag_event(1, at + Vector2(200, 0)))
+	_check(rig.camera.size < size, "Zwei Finger auseinander zoomen hinein")
+	main._unhandled_input(_touch(1, at + Vector2(200, 0), false))
+	var regrab := rig.ground_point(at, 0.0)
+	main._unhandled_input(_drag_event(0, at + Vector2(1, 0)))
+	main._unhandled_input(_drag_event(0, at))
+	_check(rig.ground_point(at, 0.0).distance_to(regrab) < 0.01, "Nach dem Zoomen springt die Karte nicht")
+	main._unhandled_input(_touch(0, at, false))
+	_check(main.board.towers.is_empty() and not main._dragging, "Ziehen baut nichts")
+	rig.camera.size = size
+
+
+static func _touch(index: int, at: Vector2, pressed: bool) -> InputEventScreenTouch:
+	var event := InputEventScreenTouch.new()
+	event.index = index
+	event.position = at
+	event.pressed = pressed
+	return event
+
+
+static func _drag_event(index: int, at: Vector2) -> InputEventScreenDrag:
+	var event := InputEventScreenDrag.new()
+	event.index = index
+	event.position = at
+	return event
+
+
 ## Kurzer Ablauf: Türme an den Ausgang von Feld A, drei Wellen im Zeitraffer.
 func _play() -> void:
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	add_child(main)
 	await get_tree().process_frame
+	_test_touch_drag(main)
 	main.gold = 2000
 	var built := 0
 	for at in [Vector2i(16, 9), Vector2i(16, 12 - 4), Vector2i(15, 10), Vector2i(14, 8), Vector2i(16, 6), Vector2i(13, 10)]:

@@ -1,7 +1,7 @@
 class_name CameraRig
 extends Node3D
 ## Isometrische Kamera ohne Perspektive. Der Rig steht auf dem Boden, die Kamera schaut schräg von oben.
-## Verschieben per Ziehen, Zoomen per Mausrad oder zwei Fingern.
+## Verschieben per Ziehen (der gegriffene Bodenpunkt bleibt unter dem Finger), Zoomen per Mausrad oder zwei Fingern.
 
 const MIN_SIZE := 7.0
 const MAX_SIZE := 26.0
@@ -9,6 +9,7 @@ const DISTANCE := 25.0
 
 var camera := Camera3D.new()
 var bounds := Rect2(0, 0, 40, 26)
+var _anchor := Vector3.ZERO
 
 
 func _ready() -> void:
@@ -35,7 +36,20 @@ func zoom(factor: float) -> void:
 	camera.size = clampf(camera.size * factor, MIN_SIZE, MAX_SIZE)
 
 
-## Bildschirmbewegung in Pixeln -> Bewegung auf dem Boden.
+## Bodenpunkt unter `screen` festhalten (beim Aufsetzen eines Fingers).
+func grab(screen: Vector2) -> void:
+	_anchor = ground_point(screen, 0.0)
+
+
+## So verschieben, dass der festgehaltene Bodenpunkt unter `screen` liegt. Rechnet über denselben Strahl wie
+## das Tippen und braucht weder `relative` noch einen Pixelmaßstab.
+func drag_to(screen: Vector2) -> void:
+	var offset := _anchor - ground_point(screen, 0.0)
+	position.x = clampf(position.x + offset.x, bounds.position.x, bounds.end.x)
+	position.z = clampf(position.z + offset.z, bounds.position.y, bounds.end.y)
+
+
+## Bildschirmbewegung in Pixeln -> Bewegung auf dem Boden (Trackpad-Geste).
 func pan(screen_delta: Vector2) -> void:
 	var view := get_viewport().get_visible_rect().size
 	var units := camera.size / (view.x if camera.keep_aspect == Camera3D.KEEP_WIDTH else view.y)

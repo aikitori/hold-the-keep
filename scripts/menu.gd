@@ -76,9 +76,11 @@ func _fit() -> void:
 
 ## Schwierigkeit und Grafikstufe.
 func _options() -> Control:
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 8)
+	# Bricht im Hochformat um, statt das Menü zu verbreitern.
+	var row := HFlowContainer.new()
+	row.alignment = FlowContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("h_separation", 8)
+	row.add_theme_constant_override("v_separation", 8)
 	var label := Label.new()
 	label.text = tr("Schwierigkeit")
 	row.add_child(label)

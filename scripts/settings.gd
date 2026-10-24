@@ -72,7 +72,8 @@ func saved_game() -> Dictionary:
 	var config := ConfigFile.new()
 	if config.load(save_file) != OK:
 		return {}
-	return config.get_value("game", "state", {})
+	var state: Dictionary = config.get_value("game", "state", {})
+	return state if state.get("version", 0) == Main.SAVE_VERSION else {}
 
 
 func save_game(state: Dictionary) -> void:

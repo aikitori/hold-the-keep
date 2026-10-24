@@ -70,6 +70,12 @@ func _ready() -> void:
 	_layout()
 
 
+## Android-Zurück im Menü beendet die App.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		get_tree().quit()
+
+
 func _layout() -> void:
 	_grid.columns = 2 if UiScale.narrow else _cards.size()
 	_fit.call_deferred()

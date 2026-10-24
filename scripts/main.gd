@@ -5,6 +5,8 @@ extends Node3D
 ## Mausrad oder zwei Finger zoomen.
 
 const DRAG_THRESHOLD := 12.0
+## Spielstände mit anderer Version werden verworfen (erhöhen, wenn sich `snapshot` ändert).
+const SAVE_VERSION := 1
 ## Karte für das nächste Spiel (setzt das Menü).
 static var map_id: StringName = &"vier_felder"
 ## Gespeicherter Stand zum Fortsetzen (setzt das Menü, leer = neues Spiel).
@@ -355,8 +357,10 @@ func _process(delta: float) -> void:
 		hud.show_tower(_selected, gold)
 
 
-func _start_wave() -> void:
-	autosave()  # Stand vor der Welle: wer jetzt schließt, setzt hier wieder an
+## save: Stand vor der Welle speichern (bei "Nächste Welle" schon vor dem Bonus geschehen).
+func _start_wave(save := true) -> void:
+	if save:
+		autosave()
 	wave += 1
 	countdown = 0.0
 	for tower: Variant in board.towers.values():
@@ -443,11 +447,12 @@ func cast_pitch(at: Vector3) -> void:
 func call_next_wave() -> void:
 	if game_over or get_tree().paused or not _queue.is_empty() or countdown <= 0.0:
 		return
+	autosave()  # vor dem Bonus, sonst gäbe Neuladen ihn ein zweites Mal
 	gold += int(countdown) / 2
 	gold_earned += int(countdown) / 2
 	if int(countdown) >= 2:
 		Sfx.play(&"coins")
-	_start_wave()
+	_start_wave(false)
 
 
 func _spawn(kind: StringName) -> void:
@@ -536,6 +541,12 @@ func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED] and is_inside_tree():
 		autosave()
 		set_paused(true)
+	elif what == NOTIFICATION_WM_GO_BACK_REQUEST and is_inside_tree():
+		# Android-Zurück: erst abbrechen, dann pausieren, aus der Pause wieder weiter.
+		if get_tree().paused:
+			set_paused(false)
+		elif not game_over:
+			_cancel()
 
 
 func _leave() -> void:
@@ -555,7 +566,7 @@ func snapshot() -> Dictionary:
 		if tower is Tower:
 			towers.append({"cell": tower.cell, "id": tower.id, "level": tower.level, "spec": tower.spec_id,
 					"target": tower.target_mode, "invested": tower.invested, "kills": tower.kills})
-	return {"map": map_id, "difficulty": difficulty, "wave": wave, "gold": gold, "lives": lives, "endless": endless,
+	return {"version": SAVE_VERSION, "map": map_id, "difficulty": difficulty, "wave": wave, "gold": gold, "lives": lives, "endless": endless,
 			"kills": kills, "gold_earned": gold_earned, "towers_built": towers_built, "abilities": ability_wait.duplicate(),
 			"towers": towers}
 
@@ -757,8 +768,10 @@ func _cancel() -> void:
 	elif _ghost_id != &"":
 		hud.clear_build()
 		_on_build_selected(&"")
-	else:
+	elif _selected != null:
 		select_tower(null)
+	else:
+		set_paused(true)  # nichts abzubrechen: Esc oder Zurück öffnet die Pause
 
 
 # --- Eingabe ----------------------------------------------------------------------

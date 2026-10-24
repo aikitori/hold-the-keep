@@ -477,6 +477,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		if not button.disabled or button.button_pressed:
 			button.button_pressed = not button.button_pressed
 		return
+	if key.keycode == KEY_ESCAPE and get_tree().paused and _pause_panel.visible:
+		pause_pressed.emit()
+		get_viewport().set_input_as_handled()
+		return
 	match key.keycode:
 		KEY_P: pause_pressed.emit()
 		KEY_SPACE: next_wave_pressed.emit()

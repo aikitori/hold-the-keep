@@ -145,7 +145,8 @@ Links am Rand, jede mit Abklingzeit (zu Beginn bereit, läuft nur, solange gespi
 ## Tasten am Rechner
 
 1 bis 9 bauen (nochmal drücken wählt ab), Q W E Fähigkeiten, U ausbauen, Entf oder X abreißen, T Zielwahl,
-Leertaste nächste Welle, P Pause, Esc oder rechte Maustaste bricht ab.
+Leertaste nächste Welle, P Pause, Esc oder rechte Maustaste bricht ab (gibt es nichts abzubrechen, öffnet Esc
+die Pause, in der Pause geht es mit Esc weiter). Android-Zurück: im Spiel wie Esc, im Menü beendet es die App.
 
 ## Spielstand
 

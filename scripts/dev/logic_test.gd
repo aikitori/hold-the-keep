@@ -155,6 +155,10 @@ func _test_resume(main: Main) -> void:
 			and Main.resume.is_empty(), "Spielstand: Türme, Stufen, Gold und Welle kommen wieder (%d Türme)" % copy.board.towers.size())
 	copy.queue_free()
 	await get_tree().process_frame
+	var stale := saved.duplicate()
+	stale["version"] = 0
+	Settings.save_game(stale)
+	_check(Settings.saved_game().is_empty(), "Spielstand einer anderen Version wird verworfen")
 	main.wave = 0
 
 

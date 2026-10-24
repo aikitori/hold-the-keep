@@ -20,6 +20,7 @@ var distance_left := 0.0
 var game: Node
 var board: Board
 var leg := 0
+var origin := 0  # Friedhof, von dem er kommt
 var _path: Array[Vector2i] = []
 var _next := 0
 var _slow := 0.0
@@ -36,8 +37,9 @@ var _summon_time := 0.0
 var _dust := 0.0
 
 
-func setup(enemy_kind: StringName, wave: int, main: Node, field: Board) -> void:
+func setup(enemy_kind: StringName, wave: int, main: Node, field: Board, from := 0) -> void:
 	kind = enemy_kind
+	origin = from
 	game = main
 	board = field
 	var def: Dictionary = Defs.ENEMIES[kind]
@@ -87,7 +89,7 @@ func setup(enemy_kind: StringName, wave: int, main: Node, field: Board) -> void:
 		shadow.mesh = disc
 		shadow.position.y = -_lift + 0.02
 		add_child(shadow)
-	position = Board.world_of(board.map.spawn, GROUND + _lift)
+	position = Board.world_of(board.map.spawns[origin], GROUND + _lift)
 	repath()
 
 
@@ -95,6 +97,7 @@ func setup(enemy_kind: StringName, wave: int, main: Node, field: Board) -> void:
 ## Stelle, im selben Abschnitt.
 func start_at(other: Enemy) -> void:
 	leg = other.leg
+	origin = other.origin
 	position = Vector3(other.position.x, GROUND + _lift, other.position.z)
 	_path.clear()
 	repath()
@@ -114,7 +117,7 @@ func repath() -> void:
 	if air or burrow:
 		if not _path.is_empty() and _next < _path.size():
 			return  # Bauen ändert die feste Route nicht
-		_path.assign(board.flight_legs[leg])
+		_path.assign(board.flight_route(leg, origin))
 	else:
 		_path = board.path_between(current_cell(), goal())
 	_next = 1 if _path.size() > 1 else 0

@@ -6,16 +6,17 @@ extends Control
 const COLORS := {
 	".": Color("#6f9a4a"), "=": Color("#c8a96a"), "^": Color("#9c9478"), "#": Color("#2f4a2c"),
 	"r": Color("#7d7a72"), "g": Color("#56604f"), "S": Color("#4b3f5a"), "K": Color("#b8873a"),
+	"~": Color("#4f7fc9"), "b": Color("#9a6a3f"),
 }
 const PATH_COLOR := Color(0.75, 0.15, 0.1, 0.8)
 
 var map: MapData
-var _path: Array[Vector2i] = []
+var _paths: Array = []
 
 
 func _init(map_data: MapData) -> void:
 	map = map_data
-	_path = Board.new(map).full_path()
+	_paths = Board.new(map).full_paths()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
@@ -31,11 +32,12 @@ func _draw() -> void:
 			var glyph := map.glyph(Vector2i(x, y))
 			var color: Color = COLORS.get(glyph, COLORS["."])
 			draw_rect(Rect2(x * cell, y * cell, cell + 0.5, cell + 0.5), color)
-	var points := PackedVector2Array()
-	for at in _path:
-		points.append(_center(at, cell))
-	if points.size() > 1:
-		draw_polyline(points, PATH_COLOR, maxf(2.0, cell * 0.3), true)
+	for path: Array in _paths:
+		var points := PackedVector2Array()
+		for at: Vector2i in path:
+			points.append(_center(at, cell))
+		if points.size() > 1:
+			draw_polyline(points, PATH_COLOR, maxf(2.0, cell * 0.3), true)
 	var font := get_theme_default_font()
 	var font_size := int(cell * 1.6)
 	for i in map.waypoints.size() - 1:
@@ -43,7 +45,8 @@ func _draw() -> void:
 		draw_circle(at, cell * 1.1, Hud.GOLD)
 		draw_circle(at, cell * 1.1, Hud.INK, false, 1.5, true)
 		_label(font, font_size, at, str(i + 1))
-	_marker(map.spawn, cell, Color("#4b3f5a"), "S", font, font_size)
+	for spawn in map.spawns:
+		_marker(spawn, cell, Color("#4b3f5a"), "S", font, font_size)
 	_marker(map.keep, cell, Color("#b8873a"), "B", font, font_size)
 	draw_rect(Rect2(Vector2.ZERO, size), Hud.INK, false, 2.0)
 

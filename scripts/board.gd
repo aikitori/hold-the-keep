@@ -14,8 +14,10 @@ var towers: Dictionary = {}  # Vector2i -> Tower (oder true in Tests)
 var leg_lengths: Array[float] = []
 ## Flugroute je Abschnitt: Grundweg der Karte ohne Türme, nur die Knickpunkte. Fliegende folgen ihr
 ## über alles hinweg, damit sie nicht auf Karten ohne Kontrollpunkte direkt in die Burg fliegen.
+## Abschnitt 0 gilt für den ersten Friedhof, `flight_starts` hat ihn für jeden.
 var flight_legs: Array = []
 var flight_lengths: Array[float] = []
+var flight_starts: Array = []
 var _astar := AStarGrid2D.new()
 
 
@@ -36,20 +38,27 @@ func _init(map_data: MapData) -> void:
 		var route := _corners(_astar.get_id_path(leg_start(leg), map.waypoints[leg]))
 		flight_legs.append(route)
 		flight_lengths.append(path_length(route))
+	for from in map.spawns.size():
+		flight_starts.append(_corners(_astar.get_id_path(map.spawns[from], map.waypoints[0])))
 
 
 func walkable_terrain(at: Vector2i) -> bool:
 	var kind := map.cell(at)
-	return kind != MapData.Cell.BLOCKED and kind != MapData.Cell.HIGH
+	return kind != MapData.Cell.BLOCKED and kind != MapData.Cell.HIGH and kind != MapData.Cell.WATER
 
 
 func walkable(at: Vector2i) -> bool:
 	return walkable_terrain(at) and not towers.has(at)
 
 
-## Startpunkt eines Abschnitts: 0 ist der Friedhof, danach die Kontrollpunkte.
-func leg_start(leg: int) -> Vector2i:
-	return map.spawn if leg == 0 else map.waypoints[leg - 1]
+## Startpunkt eines Abschnitts: 0 ist der Friedhof `from`, danach die Kontrollpunkte.
+func leg_start(leg: int, from := 0) -> Vector2i:
+	return map.spawns[from] if leg == 0 else map.waypoints[leg - 1]
+
+
+## Feste Route eines Abschnitts für Flieger und Gräber.
+func flight_route(leg: int, from := 0) -> Array:
+	return flight_starts[from] if leg == 0 else flight_legs[leg]
 
 
 func path_between(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
@@ -74,14 +83,22 @@ func flight_remaining_after(leg: int) -> float:
 	return total
 
 
-## Ganzer Weg vom Friedhof zur Burg (für Tests und Anzeige).
-func full_path() -> Array[Vector2i]:
+## Ganzer Weg vom Friedhof `from` zur Burg (für Tests und Anzeige).
+func full_path(from := 0) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	for leg in map.waypoints.size():
-		var part := path_between(leg_start(leg), map.waypoints[leg])
+		var part := path_between(leg_start(leg, from), map.waypoints[leg])
 		if not out.is_empty() and not part.is_empty():
 			part.remove_at(0)
 		out.append_array(part)
+	return out
+
+
+## Wege von allen Friedhöfen.
+func full_paths() -> Array:
+	var out: Array = []
+	for from in map.spawns.size():
+		out.append(full_path(from))
 	return out
 
 
@@ -129,10 +146,10 @@ func check_build(at: Vector2i, walkers: Array = []) -> BuildCheck:
 		return BuildCheck.OK  # Hochfläche liegt nie auf dem Weg
 	_astar.set_point_solid(at, true)
 	var ok := true
-	for leg in map.waypoints.size():
-		if _astar.get_id_path(leg_start(leg), map.waypoints[leg]).is_empty():
-			ok = false
-			break
+	for from in map.spawns.size():
+		for leg in map.waypoints.size():
+			if (leg == 0 or from == 0) and _astar.get_id_path(leg_start(leg, from), map.waypoints[leg]).is_empty():
+				ok = false
 	# Auch kein Gegner darf eingesperrt werden.
 	for walker: Array in walkers:
 		if not ok:
@@ -142,14 +159,14 @@ func check_build(at: Vector2i, walkers: Array = []) -> BuildCheck:
 	return BuildCheck.OK if ok else BuildCheck.BLOCKS_PATH
 
 
-## Ganzer Weg, als stünde auf `at` schon ein Turm (Vorschau beim Bauen).
-func full_path_with(at: Vector2i) -> Array[Vector2i]:
+## Wege von allen Friedhöfen, als stünde auf `at` schon ein Turm (Vorschau beim Bauen).
+func full_paths_with(at: Vector2i) -> Array:
 	if map.cell(at) == MapData.Cell.HIGH or not walkable(at):
-		return full_path()
+		return full_paths()
 	_astar.set_point_solid(at, true)
-	var path := full_path()
+	var paths := full_paths()
 	_astar.set_point_solid(at, false)
-	return path
+	return paths
 
 
 func place(at: Vector2i, tower: Variant) -> void:

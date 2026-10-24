@@ -30,6 +30,7 @@ var horn_time := 0.0
 var _aiming: StringName = &""  # Fähigkeit, die noch ein Ziel auf der Karte braucht
 var _queue: Array[StringName] = []
 var _spawn_timer := 0.0
+var _spawned := 0  # bei mehreren Friedhöfen kommen die Gegner abwechselnd
 var _speed := 1.0
 var _selected: Tower = null
 var _ghost: Node3D
@@ -60,7 +61,7 @@ func _ready() -> void:
 	add_child(rig)
 	rig.position = Board.world_of(map.spawn).lerp(Board.world_of(map.size / 2), 0.4)
 	add_child(_path_view)
-	_path_view.show_path(board.full_path())
+	_path_view.show_paths(board.full_paths())
 	_ring.mesh = _ring_mesh()
 	_ring.visible = false
 	add_child(_ring)
@@ -119,7 +120,7 @@ func _hash(at: Vector2i, salt := 0) -> int:
 func _build_terrain() -> void:
 	var groups: Dictionary = {}  # Modell -> Array[Transform3D]
 	var near_keep := func(at: Vector2i) -> bool: return (at - map.keep).length() <= 1.5
-	var near_spawn := func(at: Vector2i) -> bool: return (at - map.spawn).length() <= 1.5
+	var near_spawn := func(at: Vector2i) -> bool: return map.spawns.any(func(s: Vector2i) -> bool: return (at - s).length() <= 1.5)
 	for y in map.size.y:
 		for x in map.size.x:
 			var at := Vector2i(x, y)
@@ -129,6 +130,10 @@ func _build_terrain() -> void:
 			if kind == MapData.Cell.HIGH:
 				# Hochfläche: etwas höhere Kachel, Kante sieht man an den Nachbarn
 				_add(groups, "td/tile", Transform3D(Basis.IDENTITY.scaled(Vector3(1, Tower.HIGH / 0.2, 1)), base.origin))
+			elif kind == MapData.Cell.WATER:
+				_add(groups, "td/tile#water", base.translated(Vector3(0, -0.08, 0)))
+			elif map.glyph(at) == "b":
+				_add(groups, "td/tile-dirt#bridge", base.translated(Vector3(0, 0.03, 0)))
 			else:
 				_add(groups, "td/tile-dirt" if road else "td/tile", base)
 			if kind != MapData.Cell.BLOCKED or near_keep.call(at) or near_spawn.call(at):
@@ -153,7 +158,7 @@ func _build_terrain() -> void:
 					else:
 						_add(groups, "castle/rocks-small", Transform3D(turn, top.origin))
 	for key: String in groups:
-		var info := Models.mesh(key)
+		var info := Models.mesh(key.get_slice("#", 0))  # "#..." unterscheidet Gruppen mit eigener Farbe
 		var list: Array = groups[key]
 		var multi := MultiMesh.new()
 		multi.transform_format = MultiMesh.TRANSFORM_3D
@@ -166,11 +171,14 @@ func _build_terrain() -> void:
 		if key.begins_with("td/tile"):
 			# Flacher Boden wirft keinen Schatten: sonst beschattet er sich selbst (Streifen und Dreiecke).
 			node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		if key == "td/tile":
-			# Kenney-Gras ist sehr hell mintgrün, etwas satter und dunkler wirkt es mehr wie Wiese.
-			var grass: StandardMaterial3D = (info[0] as Mesh).surface_get_material(0).duplicate()
-			grass.albedo_color = Color(0.9, 0.74, 0.52)
-			node.material_override = grass
+		var tint: Variant = {"td/tile": Color(0.9, 0.74, 0.52), "td/tile#water": Color(0.35, 0.55, 1.0),
+				"td/tile-dirt#bridge": Color(0.5, 0.33, 0.2)}.get(key)
+		if tint != null:
+			# Kenney-Gras ist sehr hell mintgrün, etwas satter und dunkler wirkt es mehr wie Wiese. Wasser und
+			# Brücken sind umgefärbte Kacheln.
+			var material: StandardMaterial3D = (info[0] as Mesh).surface_get_material(0).duplicate()
+			material.albedo_color = tint
+			node.material_override = material
 		add_child(node)
 
 
@@ -223,17 +231,18 @@ func _build_landmarks() -> void:
 		number.no_depth_test = true
 		number.position = Board.world_of(map.waypoints[i], 1.4)
 		add_child(number)
-	var crypt := Models.make("graveyard/crypt")
-	crypt.position = Board.world_of(map.spawn + Vector2i(-1, 0), 0.2)
-	crypt.rotation.y = PI / 2
-	add_child(crypt)
-	for offset in [Vector2i(-1, -1), Vector2i(0, -1), Vector2i(-1, 1), Vector2i(0, 2), Vector2i(-1, 2)]:
-		var at: Vector2i = map.spawn + offset
-		if map.cell(at) == MapData.Cell.BLOCKED:
-			var stone := Models.make(["graveyard/gravestone-cross", "graveyard/gravestone-round", "graveyard/lantern-candle"][_hash(at) % 3])
-			stone.position = Board.world_of(at, 0.2)
-			add_child(stone)
-	_beacon(map.spawn, "Start", Color("#e0533d"), 2.2)
+	for spawn in map.spawns:
+		var crypt := Models.make("graveyard/crypt")
+		crypt.position = Board.world_of(spawn + Vector2i(-1, 0), 0.2)
+		crypt.rotation.y = PI / 2
+		add_child(crypt)
+		for offset in [Vector2i(-1, -1), Vector2i(0, -1), Vector2i(-1, 1), Vector2i(0, 2), Vector2i(-1, 2)]:
+			var at: Vector2i = spawn + offset
+			if map.cell(at) == MapData.Cell.BLOCKED:
+				var stone := Models.make(["graveyard/gravestone-cross", "graveyard/gravestone-round", "graveyard/lantern-candle"][_hash(at) % 3])
+				stone.position = Board.world_of(at, 0.2)
+				add_child(stone)
+		_beacon(spawn, "Start", Color("#e0533d"), 2.2)
 	_beacon(map.keep, "Ziel", Hud.GOLD, y + 0.6)
 
 
@@ -417,7 +426,8 @@ func call_next_wave() -> void:
 func _spawn(kind: StringName) -> void:
 	var enemy := Enemy.new()
 	add_child(enemy)
-	enemy.setup(kind, wave, self, board)
+	enemy.setup(kind, wave, self, board, _spawned % map.spawns.size())
+	_spawned += 1
 	enemies.append(enemy)
 	if enemy.is_boss:
 		Sfx.play(&"boss")
@@ -496,7 +506,7 @@ func _cycle_speed() -> void:
 
 
 func _on_board_changed() -> void:
-	_path_view.show_path(board.full_path())
+	_path_view.show_paths(board.full_paths())
 	for enemy in enemies:
 		if enemy.alive:
 			enemy.repath()
@@ -623,7 +633,7 @@ func _on_build_selected(id: StringName) -> void:
 	_ghost_id = id
 	_ghost_cell = Vector2i(-99, -99)
 	_ring.visible = false
-	_path_view.show_path(board.full_path())
+	_path_view.show_paths(board.full_paths())
 	if id == &"":
 		return
 	_ghost = Tower.build_model(id, 1)
@@ -641,9 +651,9 @@ func _move_ghost(at: Vector2i) -> void:
 	var ok: bool = board.check_build(at, walkers()) == Board.BuildCheck.OK and gold >= Defs.TOWERS[_ghost_id]["cost"]
 	Models.tint(_ghost, Color(0.4, 1.0, 0.5, 0.55) if ok else Color(1.0, 0.3, 0.25, 0.55))
 	if ok:
-		_path_view.show_path(board.full_path_with(at), true)
+		_path_view.show_paths(board.full_paths_with(at), true)
 	else:
-		_path_view.show_path(board.full_path())
+		_path_view.show_paths(board.full_paths())
 	_show_ring(_ghost.position, Defs.tower_range(_ghost_id, 1))
 	_ring.visible = _ghost.visible and Defs.tower_range(_ghost_id, 1) > 0.0
 

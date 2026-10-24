@@ -103,6 +103,9 @@ Schwächster, bei Türmen für Boden und Luft auch Flieger zuerst. Bei Gleichsta
 - **Rundlauf** (36x26): Ring um eine bebaubare Hochfläche, vier Kontrollpunkte erzwingen eine Runde.
 - **Schlangenpfad** (32x22): fester Weg in Schleifen durch die Hochfläche, kein Labyrinth.
 - **Weites Feld** (38x24): offenes Feld, drei Kontrollpunkte oben und unten.
+- **Zwei Friedhöfe** (36x24): zwei Startpunkte links, die Gegner kommen abwechselnd. Ein Fluss (nicht begehbar,
+  nicht bebaubar) teilt das Feld, zwei Brücken führen hinüber. Eine Brücke zubauen lenkt alle zur anderen, beide
+  zu geht nicht.
 
 ## Anzeige
 
@@ -154,5 +157,5 @@ Mitte und verschieben zugleich, danach zieht der übrige Finger ohne Sprung weit
 
 ## Ideen für später
 
-- Mehr Karten (mehrere Startpunkte, Brücken über Flüsse), Schwierigkeitsgrade, Endlosmodus.
+- Mehr Karten.
 - Musik, Englisch als zweite Sprache, Spielstand speichern.

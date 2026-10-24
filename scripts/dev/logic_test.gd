@@ -29,7 +29,7 @@ func _ready() -> void:
 		if map.cell(cell) == MapData.Cell.GRASS:
 			grass_step = cell
 			break
-	var preview := board.full_path_with(grass_step)
+	var preview: Array[Vector2i] = board.full_paths_with(grass_step)[0]
 	_check(not preview.has(grass_step) and preview[-1] == map.keep and board.full_path() == path,
 			"Wegvorschau umgeht das geplante Feld und ändert den Weg nicht")
 	_check(board.check_build(Vector2i(19, 10)) == Board.BuildCheck.NOT_GRASS, "Auf dem festen Weg kann nicht gebaut werden")
@@ -80,6 +80,32 @@ func _ready() -> void:
 
 
 ## Alle Karten: Weg über alle Kontrollpunkte, Hochfläche bebaubar ohne den Weg zu ändern.
+## Zwei Friedhöfe, Fluss mit zwei Brücken: eine Brücke zubauen lenkt beide Wege zur anderen, beide nicht.
+func _test_two_graveyards() -> void:
+	var map := MapData.load_map(&"zwei_friedhoefe")
+	var board := Board.new(map)
+	var paths := board.full_paths()
+	var crosses := func(path: Array) -> bool: return path.any(func(at: Vector2i) -> bool: return map.glyph(at) == "b")
+	_check(map.spawns.size() == 2 and paths.all(func(p: Array) -> bool: return p[-1] == map.keep and crosses.call(p))
+			and paths.all(func(p: Array) -> bool: return not p.any(func(at: Vector2i) -> bool: return map.cell(at) == MapData.Cell.WATER)),
+			"Zwei Friedhöfe: beide Wege führen über eine Brücke zur Burg")
+	_check(board.check_build(Vector2i(17, 10)) == Board.BuildCheck.NOT_GRASS, "Im Fluss kann nicht gebaut werden")
+	# Westlich vor der oberen Brücke zumauern.
+	for at: Vector2i in [Vector2i(15, 2), Vector2i(15, 3), Vector2i(15, 4), Vector2i(15, 5), Vector2i(15, 6), Vector2i(15, 7),
+			Vector2i(15, 8), Vector2i(16, 8)]:
+		board.place(at, true)
+	var upper := func(at: Vector2i) -> bool: return map.glyph(at) == "b" and at.y < 12
+	var lower := func(at: Vector2i) -> bool: return map.glyph(at) == "b" and at.y > 12
+	_check(board.full_paths().all(func(p: Array) -> bool: return not p.any(upper) and p.any(lower)), "Obere Brücke zu: alle nehmen die untere")
+	var refused := false
+	for at: Vector2i in [Vector2i(16, 15), Vector2i(15, 15), Vector2i(15, 16), Vector2i(15, 17), Vector2i(15, 18)]:
+		if board.check_build(at) == Board.BuildCheck.OK:
+			board.place(at, true)
+		else:
+			refused = true
+	_check(refused, "Beide Brücken lassen sich nicht zubauen")
+
+
 func _test_maps() -> void:
 	for id: StringName in MapData.ORDER:
 		var map := MapData.load_map(id)
@@ -100,6 +126,7 @@ func _test_maps() -> void:
 			_check(board.check_build(high) == Board.BuildCheck.OK, "Karte %s: Hochfläche bebaubar" % id)
 			board.place(high, true)
 			_check(board.full_path().size() == before, "Karte %s: Turm auf der Hochfläche ändert den Weg nicht" % id)
+	_test_two_graveyards()
 	_check(Defs.is_air_wave(4) and Defs.wave(4).all(func(k: StringName) -> bool: return Defs.ENEMIES[k].get("air", false)),
 			"Welle 4 ist eine Luftwelle")
 	for id: StringName in Defs.SPECS:
@@ -142,7 +169,7 @@ func _enemy(main: Main, kind: StringName, at: Vector3) -> Enemy:
 ## Gräber, Schildträger, Seuchenzombie und Nekromant.
 func _test_new_enemies(main: Main) -> void:
 	var digger := _enemy(main, &"burrower", Board.world_of(main.map.spawn))
-	_check(digger._path == main.board.flight_legs[0] and not main.walkers().any(func(w: Array) -> bool: return w[0] == digger.current_cell()),
+	_check(digger._path == main.board.flight_route(0) and not main.walkers().any(func(w: Array) -> bool: return w[0] == digger.current_cell()),
 			"Gräber folgt der festen Route und sperrt keinen Bauplatz")
 	var center := Board.world_of(Vector2i(8, 6))
 	var knight := _enemy(main, &"knight", center)

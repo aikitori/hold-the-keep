@@ -52,16 +52,22 @@ func _add_chevron(mesh: ArrayMesh, size: float, lift: float, color: Color, tinte
 	st.commit(mesh)
 
 
-func show_path(path: Array[Vector2i], preview := false) -> void:
+## Ein Weg je Friedhof.
+func show_paths(paths: Array, preview := false) -> void:
 	_color = PREVIEW_COLOR if preview else COLOR
-	_count = maxi(0, path.size() - 1)
+	_count = 0
+	for path: Array in paths:
+		_count += maxi(0, path.size() - 1)
 	_multi.instance_count = _count
-	for i in _count:
-		var from := Board.world_of(path[i], HEIGHT)
-		var to := Board.world_of(path[i + 1], HEIGHT)
-		var dir := to - from
-		var basis := Basis(Vector3.UP, atan2(dir.x, dir.z))
-		_multi.set_instance_transform(i, Transform3D(basis, from.lerp(to, 0.5)))
+	var i := 0
+	for path: Array in paths:
+		for step in path.size() - 1:
+			var from := Board.world_of(path[step], HEIGHT)
+			var to := Board.world_of(path[step + 1], HEIGHT)
+			var dir := to - from
+			var basis := Basis(Vector3.UP, atan2(dir.x, dir.z))
+			_multi.set_instance_transform(i, Transform3D(basis, from.lerp(to, 0.5)))
+			i += 1
 	_update_colors()
 
 

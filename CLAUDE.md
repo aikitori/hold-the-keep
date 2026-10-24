@@ -72,9 +72,12 @@ Ausgabe prüfen auf `LOGIC-TEST OK`, keine Zeilen mit `FAIL` oder `SCRIPT ERROR`
 ## Release
 
 1. Version in `project.godot` und `export_presets.cfg` erhöhen (Code +1).
-2. Test laufen lassen, APK bauen: `ANDROID_HOME=~/.local/opt/android-sdk JAVA_HOME=~/.local/opt/jdk-17 tools/build_android.sh`.
-3. Committen, pushen, Tag `alpha-X.Y.Z`, Prerelease mit der APK (`gh release create`). Keine `v*`-Tags.
-4. Die Web-Version baut `.github/workflows/pages.yml` bei jedem Push auf `main`.
+2. Test laufen lassen, committen, pushen.
+3. Annotierten Tag mit der Notiz pushen: `git tag -a alpha-X.Y.Z -m "<Änderungen>"`, `git push origin alpha-X.Y.Z`.
+   `.github/workflows/release.yml` prüft die Version, testet, baut die APK und legt das Prerelease an. Gleicher
+   Schlüssel für alle APKs nur mit Secret `DEBUG_KEYSTORE_BASE64`. Keine `v*`-Tags.
+4. Lokal bauen geht weiter: `ANDROID_HOME=~/.local/opt/android-sdk tools/build_android.sh` (JDK 17).
+5. Die Web-Version baut `.github/workflows/pages.yml` bei jedem Push auf `main`.
 
 ## Konventionen
 

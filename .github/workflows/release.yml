@@ -1,0 +1,83 @@
+name: Alpha-Release
+
+# Ein Tag alpha-X.Y.Z baut die Debug-APK und legt ein Prerelease damit an. Die Notiz kommt aus der Nachricht
+# des (annotierten) Tags. Damit Updates ohne Deinstallieren gehen, braucht jede APK denselben Schlüssel:
+# Secret DEBUG_KEYSTORE_BASE64 (base64 eines Debug-Keystores, Alias androiddebugkey, Passwort android).
+# Ohne Secret wird ein neuer Schlüssel erzeugt und die Notiz weist darauf hin.
+
+on:
+  push:
+    tags: ['alpha-*']
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: '4.7.2'
+
+jobs:
+  release:
+    name: APK bauen und veröffentlichen
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup-godot-android
+        with:
+          godot-version: ${{ env.GODOT_VERSION }}
+
+      - name: Version prüfen
+        run: |
+          version="${GITHUB_REF_NAME#alpha-}"
+          grep -q "config/version=\"$version\"" project.godot || { echo "::error::project.godot hat nicht Version $version"; exit 1; }
+          grep -q "version/name=\"$version\"" export_presets.cfg || { echo "::error::export_presets.cfg hat nicht Version $version"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Projekt importieren
+        run: |
+          godot --headless --import || true
+          godot --headless --import || true
+
+      - name: Spiellogik testen
+        run: |
+          godot --headless res://scenes/dev/logic_test.tscn 2>&1 | tee logic.log
+          test "${PIPESTATUS[0]}" -eq 0
+          if grep -E "SCRIPT ERROR|^ERROR" logic.log; then
+            echo "::error::Fehler im Logiktest"
+            exit 1
+          fi
+          grep -q "LOGIC-TEST OK" logic.log
+
+      - name: Schlüssel bereitstellen
+        env:
+          KEYSTORE: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            mkdir -p ~/.local/share/hold-the-keep
+            echo "$KEYSTORE" | base64 -d > ~/.local/share/hold-the-keep/debug.keystore
+            echo "NEW_KEY=" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Kein Secret DEBUG_KEYSTORE_BASE64, die APK bekommt einen neuen Schlüssel"
+            echo "NEW_KEY=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: APK bauen
+        run: |
+          tools/build_android.sh debug
+          mv build/hold-the-keep-debug.apk "build/hold-the-keep-${GITHUB_REF_NAME}.apk"
+
+      - name: Prerelease anlegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")"
+          [ -n "$notes" ] || notes="Version $VERSION"
+          if [ -n "$NEW_KEY" ]; then
+            notes="$notes"$'\n\n'"Hinweis: neuer Signaturschlüssel, ältere Versionen vorher deinstallieren."
+          fi
+          notes="$notes"$'\n\n'"Android: APK herunterladen und installieren (Debug-Build). Browser: https://aikitori.github.io/hold-the-keep/"
+          gh release create "$GITHUB_REF_NAME" "build/hold-the-keep-${GITHUB_REF_NAME}.apk" \
+            --prerelease --title "Hold the Keep $GITHUB_REF_NAME" --notes "$notes"

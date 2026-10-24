@@ -40,7 +40,11 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
   | Ghul | 11 | heilt 5 % je Sekunde, außer wenn er brennt (hellgrün) |
   | Schwarzer Ritter | 12 | Rüstung 6 (dunkel) |
   | Irrlicht | 14 | Flieger, schnell, schwach (blau) |
+  | Gräber | 13 | gräbt sich unter Türmen durch: folgt dem Grundweg wie Flieger, bleibt Bodengegner (braun, halb im Boden) |
+  | Schildträger | 16 | Gegner im Umkreis von 1,5 Feldern erhalten Rüstung 3 (blau, mit Schild) |
   | Orkhäuptling | 17 | groß, zäh, Rüstung 4 (rot) |
+  | Seuchenzombie | 18 | zerfällt beim Tod in drei Knochenwichte (gelb) |
+  | Nekromant | 21 | ruft alle 5 s zwei Skelette, die kein Gold geben (lila) |
 
 - Rüstung zieht von jedem Treffer ab, höchstens 75 %. Magie und Feuer gehen durch. Gegen Rüstung helfen
   schwere Treffer (Balliste, Katapult) oder der Magierturm.

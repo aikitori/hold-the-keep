@@ -106,6 +106,47 @@ func _test_maps() -> void:
 		_check((Defs.SPECS[id] as Array).size() == 2, "%s hat zwei Spezialisierungen" % id)
 
 
+func _enemy(main: Main, kind: StringName, at: Vector3) -> Enemy:
+	var enemy := Enemy.new()
+	main.add_child(enemy)
+	enemy.setup(kind, 1, main, main.board)
+	enemy.position = Vector3(at.x, enemy.position.y, at.z)
+	main.enemies.append(enemy)
+	return enemy
+
+
+## Gräber, Schildträger, Seuchenzombie und Nekromant.
+func _test_new_enemies(main: Main) -> void:
+	var digger := _enemy(main, &"burrower", Board.world_of(main.map.spawn))
+	_check(digger._path == main.board.flight_legs[0] and not main.walkers().any(func(w: Array) -> bool: return w[0] == digger.current_cell()),
+			"Gräber folgt der festen Route und sperrt keinen Bauplatz")
+	var center := Board.world_of(Vector2i(8, 6))
+	var knight := _enemy(main, &"knight", center)
+	var hp := knight.hp
+	knight.take_damage(20.0)
+	var plain := hp - knight.hp
+	var shield := _enemy(main, &"shieldbearer", center + Vector3(0.5, 0, 0))
+	hp = knight.hp
+	knight.take_damage(20.0)
+	_check(hp - knight.hp < plain, "Schildträger schützt Nachbarn (%.0f statt %.0f Schaden)" % [hp - knight.hp, plain])
+	var before := main.enemies.size()
+	var plague := _enemy(main, &"plague", center)
+	plague.take_damage(10000.0)
+	var parts := main.enemies.filter(func(e: Enemy) -> bool: return e.kind == &"swarm")
+	_check(parts.size() == 3 and main.enemies.size() == before + 3 and parts[0].position.distance_to(center) < 1.0,
+			"Seuchenzombie zerfällt in drei Knochenwichte")
+	var necro := _enemy(main, &"necromancer", center)
+	necro._summon_time = 0.01
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var helpers := main.enemies.filter(func(e: Enemy) -> bool: return e.kind == &"skeleton")
+	_check(helpers.size() == 2 and helpers.all(func(e: Enemy) -> bool: return e.gold == 0), "Nekromant ruft zwei Skelette ohne Gold")
+	for enemy in main.enemies.duplicate():
+		main.enemies.erase(enemy)
+		enemy.queue_free()
+	await get_tree().process_frame
+
+
 ## Zielwahl: zwei Gegner neben dem Turm, einer stark und vorne, einer schwach und fliegend.
 func _test_targeting(main: Main, tower: Tower) -> void:
 	var strong := Enemy.new()
@@ -239,6 +280,7 @@ func _play() -> void:
 	_check(built >= 5, "Türme gebaut (%d)" % built)
 	var tower: Tower = main.board.towers.values()[0]
 	_test_targeting(main, tower)
+	await _test_new_enemies(main)
 	main.select_tower(tower)
 	main.upgrade_selected()
 	_check(tower.level == 2, "Ausbau auf Stufe 2")

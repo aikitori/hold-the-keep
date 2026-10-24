@@ -366,6 +366,29 @@ func _spawn(kind: StringName) -> void:
 		Sfx.play(&"boss")
 
 
+## Neuer Gegner an der Stelle eines anderen (Seuchenzombie zerfällt, Nekromant ruft). Gerufene Helfer geben
+## kein Gold, sonst ließe sich am Nekromanten unbegrenzt verdienen.
+func spawn_from(parent: Enemy, kind: StringName, with_gold: bool) -> void:
+	var enemy := Enemy.new()
+	add_child(enemy)
+	enemy.setup(kind, wave, self, board)
+	enemy.start_at(parent)
+	if not with_gold:
+		enemy.gold = 0
+	enemies.append(enemy)
+
+
+## Zusätzliche Rüstung durch Schildträger in der Nähe (der stärkste zählt, nicht für ihn selbst).
+func aura_armor(enemy: Enemy) -> float:
+	var best := 0.0
+	for other in enemies:
+		var aura: float = Defs.ENEMIES[other.kind].get("aura", 0.0)
+		if aura > best and other != enemy and other.alive \
+				and other.position.distance_to(enemy.position) <= Defs.AURA_RADIUS:
+			best = aura
+	return best
+
+
 func enemy_killed(enemy: Enemy) -> void:
 	enemies.erase(enemy)
 	gold += enemy.gold
@@ -447,10 +470,11 @@ func puff(at: Vector3, color := Color(0.85, 0.75, 0.6, 0.6)) -> void:
 # --- Bauen ------------------------------------------------------------------------
 
 ## [Zelle, Ziel] aller Bodengegner: auf ihnen darf nicht gebaut und sie dürfen nicht eingesperrt werden.
+## Gräber zählen nicht, sie gehen unter Türmen durch.
 func walkers() -> Array:
 	var out: Array = []
 	for enemy in enemies:
-		if enemy.alive and not enemy.air:
+		if enemy.alive and not enemy.air and not enemy.burrow:
 			out.append([enemy.current_cell(), enemy.goal()])
 	return out
 

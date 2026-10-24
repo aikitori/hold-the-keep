@@ -113,7 +113,7 @@ func _enemies(folder: String) -> void:
 		main.add_child(enemy)
 		enemy.setup(kind, 1, main, main.board)
 		enemy.set_process(false)
-		enemy.position = center + Vector3(i * 1.3 - 7.0, enemy.position.y, -i * 1.3 + 7.0)
+		enemy.position = center + Vector3(i * 0.85 - 7.0, enemy.position.y, -i * 0.85 + 7.0)
 		enemy.rotation.y = PI * 0.25
 		i += 1
 	main.rig.position = center

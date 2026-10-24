@@ -12,6 +12,8 @@ var speed := 1.0
 var gold := 1
 var is_boss := false
 var air := false
+## Gräbt sich unter Türmen hindurch: folgt der festen Route wie Flieger, bleibt aber Bodengegner.
+var burrow := false
 var alive := true
 ## Restweg bis zur Burg in Feldern (für die Zielwahl der Türme).
 var distance_left := 0.0
@@ -30,6 +32,8 @@ var _bob := randf() * TAU
 var _fire: Node3D
 var _armor := 0.0
 var _regen := 0.0
+var _summon_time := 0.0
+var _dust := 0.0
 
 
 func setup(enemy_kind: StringName, wave: int, main: Node, field: Board) -> void:
@@ -43,6 +47,7 @@ func setup(enemy_kind: StringName, wave: int, main: Node, field: Board) -> void:
 	gold = def["gold"] + wave / 6
 	is_boss = def.get("boss", false)
 	air = def.get("air", false)
+	burrow = def.get("burrow", false)
 	_lift = def["lift"]
 	_anim = Figure.create(def["model"])
 	var size: float = def.get("size", 1.0) * 1.15
@@ -56,6 +61,14 @@ func setup(enemy_kind: StringName, wave: int, main: Node, field: Board) -> void:
 		overlay.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		for mesh: MeshInstance3D in _anim.find_children("*", "MeshInstance3D", true, false):
 			mesh.material_overlay = overlay
+	var side := 1.0
+	for key: String in def.get("props", []):
+		var prop := Models.make(key)
+		prop.position = Vector3(0.28 * side, 0.32, 0.12)
+		_anim.add_child(prop)
+		side = -side
+	if def.has("summon"):
+		_summon_time = def["summon"][2]
 	_armor = def.get("armor", 0.0)
 	_regen = def.get("regen", 0.0)
 	_anim.speed_scale = speed * 1.4
@@ -78,6 +91,15 @@ func setup(enemy_kind: StringName, wave: int, main: Node, field: Board) -> void:
 	repath()
 
 
+## Abzweig von einem anderen Gegner (Teil eines Seuchenzombies, Helfer des Nekromanten): steht an seiner
+## Stelle, im selben Abschnitt.
+func start_at(other: Enemy) -> void:
+	leg = other.leg
+	position = Vector3(other.position.x, GROUND + _lift, other.position.z)
+	_path.clear()
+	repath()
+
+
 func current_cell() -> Vector2i:
 	return Board.cell_of(position)
 
@@ -89,9 +111,9 @@ func goal() -> Vector2i:
 
 ## Neuen Weg ab der aktuellen Zelle (nach jedem Bau und nach jedem Kontrollpunkt).
 func repath() -> void:
-	if air:
+	if air or burrow:
 		if not _path.is_empty() and _next < _path.size():
-			return  # Bauen ändert die Flugroute nicht
+			return  # Bauen ändert die feste Route nicht
 		_path.assign(board.flight_legs[leg])
 	else:
 		_path = board.path_between(current_cell(), goal())
@@ -104,15 +126,16 @@ func _update_distance() -> void:
 	if _next < _path.size():
 		rest = Vector2(_path[_next].x - position.x, _path[_next].y - position.z).length()
 		rest += Board.path_length(_path.slice(_next))
-	distance_left = rest + (board.flight_remaining_after(leg) if air else board.remaining_after(leg))
+	distance_left = rest + (board.flight_remaining_after(leg) if air or burrow else board.remaining_after(leg))
 
 
 ## pierce: Magie und Feuer gehen durch die Rüstung.
 func take_damage(amount: float, pierce := false) -> void:
 	if not alive:
 		return
-	if _armor > 0.0 and not pierce:
-		amount = maxf(amount * 0.25, amount - _armor)
+	var armor: float = _armor + game.aura_armor(self)
+	if armor > 0.0 and not pierce:
+		amount = maxf(amount * 0.25, amount - armor)
 	hp -= amount
 	if hp <= 0.0:
 		_die()
@@ -135,6 +158,10 @@ func apply_burn(per_second: float, seconds: float) -> void:
 func _die() -> void:
 	alive = false
 	game.enemy_killed(self)
+	var def: Dictionary = Defs.ENEMIES[kind]
+	if def.has("split"):
+		for i in int(def["split"][1]):
+			game.spawn_from(self, def["split"][0], true)
 	Sfx.play_at(&"boss_die" if is_boss else &"bones" if kind in [&"skeleton", &"swarm"] else &"ghost" if air else &"die", position)
 	_anim.speed_scale = 1.0
 	_anim.play("die")
@@ -161,6 +188,13 @@ func _process(delta: float) -> void:
 			return
 	if _regen > 0.0 and _burn_time <= 0.0:
 		hp = minf(max_hp, hp + max_hp * _regen * delta)
+	if _summon_time > 0.0:
+		_summon_time -= delta
+		if _summon_time <= 0.0:
+			var summon: Array = Defs.ENEMIES[kind]["summon"]
+			_summon_time = summon[2]
+			for i in int(summon[1]):
+				game.spawn_from(self, summon[0], false)
 	var height := GROUND + _lift
 	var step := speed * (1.0 - _slow) * delta
 	while step > 0.0:
@@ -188,6 +222,12 @@ func _process(delta: float) -> void:
 			position += to / dist * step
 			step = 0.0
 	_update_distance()
+	if burrow:
+		# Halb im Boden, wirft beim Graben Erde auf.
+		_dust -= delta
+		if _dust <= 0.0:
+			_dust = 0.35
+			game.puff(position, Color(0.45, 0.32, 0.2, 0.7))
 	if air:
 		_bob += delta * 3.0
 		position.y = height + sin(_bob) * 0.08

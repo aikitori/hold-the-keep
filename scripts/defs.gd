@@ -128,6 +128,9 @@ const SPECS := {
 ## über alles hinweg (von Kontrollpunkt zu Kontrollpunkt). tint: Färbung (multipliziert), armor: zieht so viel
 ## von jedem Treffer ab (höchstens 75 %, Magie und Feuer gehen durch), regen: heilt Anteil der Lebenspunkte
 ## je Sekunde, solange er nicht brennt. from: erste Welle, in der die Art in gemischten Wellen vorkommt.
+## burrow: gräbt sich unter Türmen hindurch (folgt wie Flieger dem Grundweg, bleibt aber Bodengegner).
+## aura: Rüstung für andere Gegner im Umkreis von AURA_RADIUS. split: [Art, Anzahl] beim Tod.
+## summon: [Art, Anzahl, Sekunden] ruft regelmäßig Helfer (ohne Gold).
 const ENEMIES := {
 	&"skeleton": {"name": "Skelett", "model": "graveyard/character-skeleton", "hp": 21.0, "speed": 1.5, "gold": 2, "lift": 0.2, "from": 1},
 	&"bandit": {"name": "Räuber", "model": "dungeon/character-human", "hp": 34.0, "speed": 1.2, "gold": 2, "lift": 0.0, "from": 2},
@@ -143,6 +146,14 @@ const ENEMIES := {
 		"lift": 0.0, "size": 1.1, "tint": Color(0.42, 0.42, 0.52), "armor": 6.0, "from": 12},
 	&"warlord": {"name": "Orkhäuptling", "model": "dungeon/character-orc", "hp": 230.0, "speed": 0.8, "gold": 9,
 		"lift": 0.0, "size": 1.35, "tint": Color(1.0, 0.55, 0.5), "armor": 4.0, "from": 17},
+	&"burrower": {"name": "Gräber", "model": "dungeon/character-orc", "hp": 70.0, "speed": 1.1, "gold": 5, "lift": -0.18,
+		"size": 0.9, "tint": Color(0.75, 0.6, 0.45), "burrow": true, "from": 13},
+	&"shieldbearer": {"name": "Schildträger", "model": "dungeon/character-human", "hp": 90.0, "speed": 0.9, "gold": 5,
+		"lift": 0.0, "size": 1.05, "tint": Color(0.6, 0.7, 1.0), "aura": 3.0, "props": ["dungeon/shield-round"], "from": 16},
+	&"plague": {"name": "Seuchenzombie", "model": "graveyard/character-zombie", "hp": 60.0, "speed": 0.95, "gold": 3,
+		"lift": 0.2, "tint": Color(1.0, 0.88, 0.4), "split": [&"swarm", 3], "from": 18},
+	&"necromancer": {"name": "Nekromant", "model": "graveyard/character-vampire", "hp": 120.0, "speed": 0.8, "gold": 7,
+		"lift": 0.2, "tint": Color(0.7, 0.5, 1.0), "summon": [&"skeleton", 2, 5.0], "from": 21},
 	&"ghost": {"name": "Geist", "model": "graveyard/character-ghost", "hp": 41.0, "speed": 1.3, "gold": 3, "lift": 1.4, "air": true},
 	&"wisp": {"name": "Irrlicht", "model": "graveyard/character-ghost", "hp": 20.0, "speed": 2.0, "gold": 2, "lift": 1.6,
 		"air": true, "size": 0.7, "tint": Color(0.55, 0.85, 1.0), "from": 14},
@@ -152,7 +163,9 @@ const ENEMIES := {
 ## Erste Wellen und Begleiter der Bosse: eine Art reihum.
 const WAVE_CYCLE: Array[StringName] = [&"skeleton", &"bandit", &"zombie", &"orc"]
 ## Arten für gemischte Wellen (ab Welle 6).
-const MIXED: Array[StringName] = [&"skeleton", &"bandit", &"zombie", &"orc", &"runner", &"swarm", &"ghoul", &"knight", &"warlord"]
+const MIXED: Array[StringName] = [&"skeleton", &"bandit", &"zombie", &"orc", &"runner", &"swarm", &"ghoul", &"knight",
+		&"burrower", &"shieldbearer", &"warlord", &"plague", &"necromancer"]
+const AURA_RADIUS := 1.5
 ## Luftwellen: 4, 9, 14, ... (jede fünfte, eine vor dem Boss).
 const AIR_WAVE_EVERY := 5
 const AIR_WAVE_OFFSET := 4
@@ -243,6 +256,14 @@ static func wave_preview(number: int) -> String:
 			traits.append("langsam")
 		if def.get("pack", 1) > 1:
 			traits.append("Rudel")
+		if def.get("burrow", false):
+			traits.append("gräbt unter Türmen durch")
+		if def.has("aura"):
+			traits.append("schützt andere")
+		if def.has("split"):
+			traits.append("zerfällt")
+		if def.has("summon"):
+			traits.append("ruft Skelette")
 		parts.append(def["name"] + (" (%s)" % ", ".join(traits) if not traits.is_empty() else ""))
 	return "%s · %d Gegner" % [", ".join(parts), list.size()]
 

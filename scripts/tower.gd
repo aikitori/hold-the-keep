@@ -12,6 +12,9 @@ var spec_id: StringName = &""
 var cell: Vector2i
 var invested := 0
 var target_mode: StringName = &"first"
+var kills := 0
+## In derselben Bauzeit gebaut und noch nie geschossen: Abriss gibt alles zurück.
+var refundable := true
 var game: Node  # Main
 var _cooldown := 0.0
 var _model: Node3D
@@ -129,6 +132,11 @@ func cycle_target() -> void:
 	target_mode = modes[(modes.find(target_mode) + 1) % modes.size()]
 
 
+## Gold beim Abriss: alles in derselben Bauzeit, sonst SELL_SHARE.
+func sell_value() -> int:
+	return invested if refundable else roundi(invested * Defs.SELL_SHARE)
+
+
 func can_upgrade() -> bool:
 	return Defs.upgrade_cost(id, level) > 0
 
@@ -169,10 +177,12 @@ func _process(delta: float) -> void:
 	if _cooldown > 0.0:
 		return
 	_cooldown = cooldown()
+	refundable = false
 	var def: Dictionary = Defs.TOWERS[id]
 	var hit := {
 		"damage": damage(), "splash": stat("splash", 0.0), "slow": stat("slow", 0.0),
 		"slow_time": stat("slow_time", 1.6), "burn": stat("burn", 0.0), "chain": int(stat("chain", 0)),
+		"source": self,
 	}
 	Sfx.play_at(_shot_sound(def["projectile"], hit), global_position)
 	if def["projectile"] == "melee":
@@ -182,7 +192,7 @@ func _process(delta: float) -> void:
 			if not enemy.alive:
 				continue
 			if enemy == chosen[0] or (splash > 0.0 and _ground_distance(enemy) <= splash and not enemy.air):
-				enemy.take_damage(hit["damage"])
+				enemy.take_damage(hit["damage"], false, self)
 		return
 	for target in chosen:
 		var shot := Projectile.new()

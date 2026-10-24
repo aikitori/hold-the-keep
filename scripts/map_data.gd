@@ -8,11 +8,14 @@ extends RefCounted
 
 enum Cell { GRASS, ROAD, BLOCKED, SPAWN, KEEP, HIGH, CHECKPOINT, WATER }
 
-const ORDER: Array[StringName] = [&"vier_felder", &"rundlauf", &"schlangenpfad", &"weites_feld", &"zwei_friedhoefe"]
+## Reihenfolge im Menü: von leicht nach schwer (gemessen mit scenes/dev/balance.tscn).
+const ORDER: Array[StringName] = [&"schlangenpfad", &"vier_felder", &"weites_feld", &"rundlauf", &"zwei_friedhoefe"]
+## level: 1 Einsteiger, 2 Mittel, 3 Anspruchsvoll.
+const LEVELS: Array[String] = ["Einsteiger", "Mittel", "Anspruchsvoll"]
 
 const MAPS := {
 	&"vier_felder": {
-		"name": "Vier Felder",
+		"name": "Vier Felder", "level": 2,
 		"info": "Vier große Felder, verbunden durch feste Wege. Jedes Feld will sein eigenes Labyrinth.",
 		"rows": [
 		"########################################",
@@ -44,7 +47,7 @@ const MAPS := {
 		],
 	},
 	&"rundlauf": {
-		"name": "Rundlauf",
+		"name": "Rundlauf", "level": 3,
 		"info": "Eine Runde um die Hochfläche, über vier Kontrollpunkte. Türme auf der Hochfläche stören den Weg nicht.",
 		"rows": [
 			"####################################",
@@ -76,7 +79,7 @@ const MAPS := {
 		],
 	},
 	&"schlangenpfad": {
-		"name": "Schlangenpfad",
+		"name": "Schlangenpfad", "level": 1,
 		"info": "Klassisch: ein fester Weg in Schleifen. Kein Labyrinth, dafür überall Platz für Türme.",
 		"rows": [
 			"################################",
@@ -104,7 +107,7 @@ const MAPS := {
 		],
 	},
 	&"weites_feld": {
-		"name": "Weites Feld",
+		"name": "Weites Feld", "level": 2,
 		"info": "Ein offenes Feld und drei Kontrollpunkte: die Gegner müssen mehrmals quer hindurch.",
 		"rows": [
 			"######################################",
@@ -134,7 +137,7 @@ const MAPS := {
 		],
 	},
 	&"zwei_friedhoefe": {
-		"name": "Zwei Friedhöfe",
+		"name": "Zwei Friedhöfe", "level": 3,
 		"info": "Die Toten kommen von zwei Seiten und müssen über den Fluss zum Kontrollpunkt und zurück. Wer eine Brücke zubaut, lenkt sie zur anderen.",
 		"rows": [
 			"####################################",

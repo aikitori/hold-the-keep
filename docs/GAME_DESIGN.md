@@ -61,7 +61,7 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
   ändern den Weg nie). Feste Wege, Kontrollpunkte und Wald sind tabu.
 - Kein Bau darf einen Abschnitt des Wegs (Start, Kontrollpunkte, Burg) ganz versperren oder einen Gegner
   einsperren, und nicht auf einem Feld mit Gegner. Gegner gehen schräg, aber nie zwischen zwei Türmen hindurch.
-- Abreißen gibt 70 % des Eingesetzten zurück.
+- Abreißen gibt 70 % des Eingesetzten zurück, in derselben Bauzeit (noch kein Schuss, keine neue Welle) alles.
 
 ## Türme
 
@@ -99,6 +99,9 @@ Schwächster, bei Türmen für Boden und Luft auch Flieger zuerst. Bei Gleichsta
 
 ## Karten
 
+Im Menü von leicht nach schwer, mit Einstufung (gemessen mit dem Balance-Bot): Schlangenpfad Einsteiger,
+Vier Felder und Weites Feld Mittel, Rundlauf und Zwei Friedhöfe Anspruchsvoll.
+
 - **Vier Felder** (40x26): vier Baufelder, verbunden durch feste Wege.
 - **Rundlauf** (36x26): Ring um eine bebaubare Hochfläche, vier Kontrollpunkte erzwingen eine Runde.
 - **Schlangenpfad** (32x22): fester Weg in Schleifen durch die Hochfläche, kein Labyrinth.
@@ -132,6 +135,17 @@ Links am Rand, jede mit Abklingzeit (zu Beginn bereit, läuft nur, solange gespi
 | Glocke | 40 s | alle Gegner 4 s lang halb so schnell |
 | Pechregen | 45 s | Ziel antippen (mit Touch: erster Tipp zeigt den Umkreis, zweiter löst aus): 30 Schaden (wächst wie die Lebenspunkte der Gegner) im Umkreis von 2 Feldern, geht durch Rüstung, danach Brand; trifft keine Flieger |
 | Kriegshorn | 60 s | alle Türme schießen 8 s lang doppelt so schnell |
+
+## Anzeige im Spiel
+
+- Während einer Welle zeigt die obere Leiste, wie viele Gegner noch kommen oder unterwegs sind.
+- Jeder Turm zählt seine Siege (letzter Treffer, auch durch Brand). Am Ende: besiegte Gegner, verdientes Gold,
+  gebaute Türme und der Turm mit den meisten Siegen.
+
+## Tasten am Rechner
+
+1 bis 9 bauen (nochmal drücken wählt ab), Q W E Fähigkeiten, U ausbauen, Entf oder X abreißen, T Zielwahl,
+Leertaste nächste Welle, P Pause, Esc oder rechte Maustaste bricht ab.
 
 ## Pause
 

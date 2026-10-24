@@ -175,7 +175,16 @@ const EN := {
 	"zerfällt": "splits",
 	"ruft Skelette": "summons skeletons",
 	"%s · %d Gegner": "%s · %d enemies",
+	# Statistik, Tasten
+	"Besiegt: %d · Gold verdient: %d · Türme gebaut: %d": "Defeated: %d · Gold earned: %d · Towers built: %d",
+	"Bester Turm: %s (Stufe %d) mit %d Siegen": "Best tower: %s (level %d) with %d kills",
+	"Besiegt: %d": "Kills: %d",
+	"noch %d Gegner": "%d enemies left",
+	"Taste %s": "Key %s",
 	# Karten
+	"Einsteiger": "Beginner",
+	"Mittel": "Medium",
+	"Anspruchsvoll": "Challenging",
 	"B": "K",  # Burg in der Kartenvorschau
 	"Vier Felder": "Four Fields",
 	"Vier große Felder, verbunden durch feste Wege. Jedes Feld will sein eigenes Labyrinth.":

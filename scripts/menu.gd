@@ -152,6 +152,12 @@ func _card(id: StringName) -> PanelContainer:
 	name.add_theme_font_size_override("font_size", 30)
 	name.add_theme_color_override("font_color", Hud.GOLD)
 	box.add_child(name)
+	var level := Label.new()
+	var rank: int = def["level"]
+	level.text = tr(MapData.LEVELS[rank - 1])
+	level.add_theme_font_size_override("font_size", 16)
+	level.add_theme_color_override("font_color", [Color("#8fd16a"), Color("#e8c45a"), Color("#e8735a")][rank - 1])
+	box.add_child(level)
 	var preview := MapPreview.new(map)
 	preview.set_width(CARD - 20)  # abzüglich Innenabstand der Kachel
 	box.add_child(preview)

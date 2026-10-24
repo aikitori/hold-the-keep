@@ -94,6 +94,8 @@ func _ready() -> void:
 	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_toast)
 	for button in root.find_children("*", "Button", true, false):
+		# Ohne Fokus: sonst löst die Leertaste den zuletzt geklickten Knopf noch einmal aus.
+		(button as Button).focus_mode = Control.FOCUS_NONE
 		if not button in [_upgrade_button, _sell_button] and not button in _spec_buttons:
 			(button as Button).pressed.connect(Sfx.play.bind(&"click"))
 	UiScale.changed.connect(_layout)
@@ -234,7 +236,7 @@ func _build_bottom(root: Control) -> void:
 		var button := Button.new()
 		button.toggle_mode = true
 		button.custom_minimum_size = Vector2(122, 108)
-		button.tooltip_text = tr(def["info"])
+		button.tooltip_text = tr(def["info"]) + "\n" + tr("Taste %s") % str(_build_buttons.size() + 1)
 		var box := VBoxContainer.new()
 		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -302,7 +304,7 @@ func _build_abilities(root: Control) -> void:
 	panel.add_child(box)
 	for id: StringName in Defs.ABILITY_ORDER:
 		var button := Button.new()
-		button.tooltip_text = tr(Defs.ABILITIES[id]["info"])
+		button.tooltip_text = tr(Defs.ABILITIES[id]["info"]) + "\n" + tr("Taste %s") % "QWE"[_ability_buttons.size()]
 		button.pressed.connect(func() -> void: ability_pressed.emit(id))
 		box.add_child(button)
 		_ability_buttons[id] = button
@@ -383,6 +385,8 @@ func show_tower(tower: Tower, gold: int) -> void:
 		lines.append(tr("Schaden %d · Reichweite %.1f") % [roundi(tower.damage()), tower.reach()])
 		lines.append(tr("Schüsse pro Sekunde %.1f") % (1.0 / tower.cooldown()))
 		lines.append(tr({"ground": "Trifft Bodengegner", "air": "Trifft nur Fliegende", "both": "Trifft Boden und Luft"}[tower.targets()]))
+		if tower.kills > 0:
+			lines.append(tr("Besiegt: %d") % tower.kills)
 	_target_button.visible = def["damage"] > 0
 	_target_button.text = tr("Ziel: %s") % tr(Defs.TARGET_NAMES[tower.target_mode])
 	var options := tower.spec_options()
@@ -401,7 +405,7 @@ func show_tower(tower: Tower, gold: int) -> void:
 	_upgrade_button.visible = cost > 0
 	_upgrade_button.text = tr("Ausbauen  %d Gold") % cost
 	_upgrade_button.disabled = cost > gold
-	_sell_button.text = tr("Abreißen  +%d Gold") % roundi(tower.invested * Defs.SELL_SHARE)
+	_sell_button.text = tr("Abreißen  +%d Gold") % tower.sell_value()
 
 
 func _build_end(root: Control) -> void:
@@ -461,16 +465,36 @@ func show_pause(on: bool) -> void:
 	_pause_button.text = tr("Weiter") if on else tr("Pause")
 
 
+## Tasten am Rechner: 1-9 bauen, Q W E Fähigkeiten, U ausbauen, Entf/X abreißen, T Zielwahl,
+## Leertaste nächste Welle, P Pause (Esc bricht ab, das erledigt Main).
 func _unhandled_key_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
-	if key.pressed and not key.echo and key.keycode == KEY_P:
-		pause_pressed.emit()
+	if not key.pressed or key.echo:
+		return
+	var number := key.keycode - KEY_1
+	if number >= 0 and number < Defs.BUILD_ORDER.size():
+		var button: Button = _build_buttons[Defs.BUILD_ORDER[number]]
+		if not button.disabled or button.button_pressed:
+			button.button_pressed = not button.button_pressed
+		return
+	match key.keycode:
+		KEY_P: pause_pressed.emit()
+		KEY_SPACE: next_wave_pressed.emit()
+		KEY_U: upgrade_pressed.emit()
+		KEY_DELETE, KEY_X: sell_pressed.emit()
+		KEY_T: target_pressed.emit()
+		KEY_Q, KEY_W, KEY_E:
+			ability_pressed.emit(Defs.ABILITY_ORDER["QWE".find(OS.get_keycode_string(key.keycode))])
+		_: return
+	get_viewport().set_input_as_handled()
 
 
-func show_end(won: bool, wave: int) -> void:
+func show_end(won: bool, wave: int, stats := "") -> void:
 	_end_panel.visible = true
 	_end_title.text = tr("Die Burg hält!") if won else tr("Die Burg ist gefallen")
 	_end_text.text = tr("Alle %d Wellen abgewehrt.") % Defs.WAVES if won else tr("Bis Welle %d durchgehalten.") % wave
+	if stats != "":
+		_end_text.text += "\n\n" + stats
 	_endless_button.visible = won
 
 
@@ -478,11 +502,11 @@ func hide_end() -> void:
 	_end_panel.visible = false
 
 
-func update_stats(gold: int, lives: int, wave: int, countdown: float, speed: float, endless := false) -> void:
+func update_stats(gold: int, lives: int, wave: int, countdown: float, speed: float, endless := false, remaining := 0) -> void:
 	_gold_label.text = tr("Gold %d") % gold
 	_lives_label.text = tr("Leben %d") % lives
 	_wave_label.text = tr("Welle %d (endlos)") % wave if endless else tr("Welle %d / %d") % [wave, Defs.WAVES]
-	_timer_label.text = tr("nächste in %d s") % ceili(countdown) if countdown > 0.0 else ""
+	_timer_label.text = tr("nächste in %d s") % ceili(countdown) if countdown > 0.0 else tr("noch %d Gegner") % remaining
 	_next_button.disabled = countdown <= 0.0
 	_next_button.text = tr("Nächste Welle  +%d") % (int(countdown) / 2) if countdown > 0.0 else tr("Welle läuft")
 	_speed_button.text = tr("Tempo %dx") % int(speed)

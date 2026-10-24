@@ -21,6 +21,8 @@ var wave := 0
 var countdown := Defs.FIRST_WAVE_DELAY
 var game_over := false
 var kills := 0
+var gold_earned := 0
+var towers_built := 0
 ## Nach dem Sieg weiterspielen: die Wellen gehen ohne Ende weiter.
 var endless := false
 ## Restliche Abklingzeit je Fähigkeit, 0 = bereit.
@@ -335,7 +337,8 @@ func _process(delta: float) -> void:
 			countdown = Defs.WAVE_BREAK
 			_pay_interest()
 			Sfx.music(&"build")
-	hud.update_stats(gold, lives, wave, countdown if _queue.is_empty() else 0.0, _speed, endless)
+	hud.update_stats(gold, lives, wave, countdown if _queue.is_empty() else 0.0, _speed, endless,
+			enemies.size() + _queue.size())
 	if _selected != null:
 		hud.show_tower(_selected, gold)
 
@@ -343,6 +346,8 @@ func _process(delta: float) -> void:
 func _start_wave() -> void:
 	wave += 1
 	countdown = 0.0
+	for tower: Variant in board.towers.values():
+		tower.refundable = false  # neue Welle: Erstattung nur noch anteilig
 	_queue = Defs.wave(wave)
 	_spawn_timer = 0.0
 	var boss: bool = Defs.ENEMIES[_queue[0]].get("boss", false)
@@ -359,6 +364,7 @@ func _pay_interest() -> void:
 	if interest <= 0:
 		return
 	gold += interest
+	gold_earned += interest
 	hud.toast(tr("Welle %d besiegt! Zinsen: +%d Gold") % [wave, interest])
 	Sfx.play(&"coins")
 
@@ -424,6 +430,7 @@ func call_next_wave() -> void:
 	if game_over or get_tree().paused or not _queue.is_empty() or countdown <= 0.0:
 		return
 	gold += int(countdown) / 2
+	gold_earned += int(countdown) / 2
 	if int(countdown) >= 2:
 		Sfx.play(&"coins")
 	_start_wave()
@@ -465,6 +472,7 @@ func aura_armor(enemy: Enemy) -> float:
 func enemy_killed(enemy: Enemy) -> void:
 	enemies.erase(enemy)
 	gold += enemy.gold
+	gold_earned += enemy.gold
 	kills += 1
 	if enemy.is_boss:
 		hud.toast(tr("%s besiegt! +%d Gold") % [tr(Defs.ENEMIES[enemy.kind]["name"]), enemy.gold])
@@ -484,9 +492,21 @@ func _finish(won: bool) -> void:
 	Engine.time_scale = 1.0
 	if won:
 		Settings.record(map_id, wave, true)
-	hud.show_end(won, wave)
+	hud.show_end(won, wave, _stats())
 	Sfx.music(&"")
 	Sfx.play(&"victory" if won else &"defeat")
+
+
+## Zahlen für das Ende: besiegte Gegner, verdientes Gold, gebaute Türme, der Turm mit den meisten Siegen.
+func _stats() -> String:
+	var lines: Array[String] = [tr("Besiegt: %d · Gold verdient: %d · Türme gebaut: %d") % [kills, gold_earned, towers_built]]
+	var best: Tower = null
+	for tower: Variant in board.towers.values():
+		if tower is Tower and tower.kills > 0 and (best == null or tower.kills > best.kills):
+			best = tower
+	if best != null:
+		lines.append(tr("Bester Turm: %s (Stufe %d) mit %d Siegen") % [tr(best.title()), best.level, best.kills])
+	return "\n".join(lines)
 
 
 func set_paused(on: bool) -> void:
@@ -575,6 +595,7 @@ func try_build(id: StringName, at: Vector2i) -> Tower:
 	add_child(tower)
 	tower.setup(id, at, self, Tower.HIGH if map.cell(at) == MapData.Cell.HIGH else Tower.GROUND)
 	board.place(at, tower)
+	towers_built += 1
 	Sfx.play(&"build")
 	return tower
 
@@ -623,7 +644,7 @@ func specialize_selected(spec_id: StringName) -> void:
 func sell_selected() -> void:
 	if _selected == null:
 		return
-	gold += roundi(_selected.invested * Defs.SELL_SHARE)
+	gold += _selected.sell_value()
 	Sfx.play(&"sell")
 	board.remove(_selected.cell)
 	_selected.queue_free()

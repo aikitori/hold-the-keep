@@ -33,6 +33,9 @@ var _bob := randf() * TAU
 var _fire: Node3D
 var _armor := 0.0
 var _regen := 0.0
+## Turm des letzten Treffers (bekommt den Sieg gutgeschrieben) und des Brandes.
+var _last_source: Tower
+var _burn_source: Tower
 var _summon_time := 0.0
 var _dust := 0.0
 
@@ -133,9 +136,11 @@ func _update_distance() -> void:
 
 
 ## pierce: Magie und Feuer gehen durch die Rüstung.
-func take_damage(amount: float, pierce := false) -> void:
+func take_damage(amount: float, pierce := false, source: Tower = null) -> void:
 	if not alive:
 		return
+	if source != null:
+		_last_source = source
 	var armor: float = _armor + game.aura_armor(self)
 	if armor > 0.0 and not pierce:
 		amount = maxf(amount * 0.25, amount - armor)
@@ -149,7 +154,8 @@ func apply_slow(factor: float, seconds: float) -> void:
 	_slow_time = maxf(_slow_time, seconds)
 
 
-func apply_burn(per_second: float, seconds: float) -> void:
+func apply_burn(per_second: float, seconds: float, source: Tower = null) -> void:
+	_burn_source = source
 	_burn = maxf(_burn, per_second)
 	_burn_time = maxf(_burn_time, seconds)
 	if _fire == null:
@@ -160,6 +166,8 @@ func apply_burn(per_second: float, seconds: float) -> void:
 
 func _die() -> void:
 	alive = false
+	if is_instance_valid(_last_source):
+		_last_source.kills += 1
 	game.enemy_killed(self)
 	var def: Dictionary = Defs.ENEMIES[kind]
 	if def.has("split"):
@@ -183,7 +191,7 @@ func _process(delta: float) -> void:
 			_slow = 0.0
 	if _burn_time > 0.0:
 		_burn_time -= delta
-		take_damage(_burn * delta, true)
+		take_damage(_burn * delta, true, _burn_source if is_instance_valid(_burn_source) else null)
 		if _burn_time <= 0.0 and _fire != null:
 			_fire.queue_free()
 			_fire = null

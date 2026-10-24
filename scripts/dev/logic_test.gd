@@ -271,6 +271,7 @@ func _test_translations() -> void:
 		for option: Dictionary in options:
 			texts.append_array([option["name"], option["info"]])
 	texts.append_array(Defs.TARGET_NAMES.values())
+	texts.append_array(MapData.LEVELS)
 	texts.append_array(Main.BUILD_MESSAGES.values())
 	for text: String in texts:
 		if not Lang.EN.has(text):
@@ -382,6 +383,18 @@ func _play() -> void:
 	_check(built >= 5, "Türme gebaut (%d)" % built)
 	var tower: Tower = main.board.towers.values()[0]
 	_test_targeting(main, tower)
+	var gold_now: int = main.gold
+	var quick: Tower = main.try_build(&"archer", Vector2i(10, 4))
+	main.select_tower(quick)
+	main.sell_selected()
+	_check(main.gold == gold_now, "Abriss in derselben Bauzeit gibt alles zurück")
+	var key := InputEventKey.new()
+	key.pressed = true
+	key.keycode = KEY_2
+	main.hud._unhandled_key_input(key)
+	var picked: StringName = main.hud.selected_build
+	main.hud._unhandled_key_input(key)
+	_check(picked == Defs.BUILD_ORDER[1] and main.hud.selected_build == &"", "Taste 2 wählt den zweiten Turm und wieder ab")
 	await _test_abilities(main)
 	await _test_new_enemies(main)
 	main.select_tower(tower)
@@ -412,6 +425,11 @@ func _play() -> void:
 	_check(main.kills > 10, "Türme töten Gegner (%d, Leben %d)" % [main.kills, main.lives])
 	_check(not early, "Pause erst, wenn die Welle besiegt ist")
 	_check(main.wave >= 4, "Vier Wellen gespielt, auch eine Luftwelle (%d)" % main.wave)
+	var credited := 0
+	for placed: Tower in main.board.towers.values():
+		credited += placed.kills
+	_check(credited > 0 and credited <= main.kills and main._stats().contains("Bester Turm") and main.gold_earned > 0,
+			"Siege werden Türmen gutgeschrieben (%d von %d)" % [credited, main.kills])
 	var gold_before: int = main.gold
 	main.select_tower(tower)
 	main.sell_selected()

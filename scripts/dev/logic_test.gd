@@ -106,6 +106,30 @@ func _test_maps() -> void:
 		_check((Defs.SPECS[id] as Array).size() == 2, "%s hat zwei Spezialisierungen" % id)
 
 
+## Glocke verlangsamt, Pechregen trifft am Ziel, Kriegshorn läuft ab, Abklingzeiten sperren.
+func _test_abilities(main: Main) -> void:
+	var center := Board.world_of(Vector2i(8, 6))
+	var near := _enemy(main, &"orc", center)
+	var far := _enemy(main, &"orc", center + Vector3(6, 0, 0))
+	main.use_ability(&"bell")
+	_check(near._slow == 0.5 and main.ability_wait[&"bell"] > 0.0, "Glocke verlangsamt alle Gegner")
+	main.use_ability(&"pitch")
+	main.cast_pitch(center)
+	_check(near.hp < near.max_hp and far.hp == far.max_hp and main.ability_wait[&"pitch"] > 0.0, "Pechregen trifft nur am Ziel")
+	main.use_ability(&"horn")
+	_check(main.horn_time > 0.0, "Kriegshorn beschleunigt die Türme")
+	var wait: float = main.ability_wait[&"horn"]
+	main.use_ability(&"horn")
+	_check(main.ability_wait[&"horn"] == wait, "Während der Abklingzeit nicht nochmal")
+	for enemy in [near, far]:
+		main.enemies.erase(enemy)
+		enemy.queue_free()
+	for id: StringName in main.ability_wait:
+		main.ability_wait[id] = 0.0
+	main.horn_time = 0.0
+	await get_tree().process_frame
+
+
 func _enemy(main: Main, kind: StringName, at: Vector3) -> Enemy:
 	var enemy := Enemy.new()
 	main.add_child(enemy)
@@ -280,6 +304,7 @@ func _play() -> void:
 	_check(built >= 5, "Türme gebaut (%d)" % built)
 	var tower: Tower = main.board.towers.values()[0]
 	_test_targeting(main, tower)
+	await _test_abilities(main)
 	await _test_new_enemies(main)
 	main.select_tower(tower)
 	main.upgrade_selected()

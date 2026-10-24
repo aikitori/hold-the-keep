@@ -159,7 +159,7 @@ func specialize(new_spec: StringName) -> void:
 func _process(delta: float) -> void:
 	if Defs.TOWERS[id]["damage"] <= 0:
 		return
-	_cooldown -= delta
+	_cooldown -= delta * (2.0 if game.horn_time > 0.0 else 1.0)  # Kriegshorn
 	var chosen := _pick_targets(int(stat("multishot", 1)))
 	if chosen.is_empty():
 		return

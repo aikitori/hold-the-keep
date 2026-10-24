@@ -82,6 +82,16 @@ const TOWERS := {
 const BUILD_ORDER: Array[StringName] = [&"wall", &"bowman", &"spearman", &"archer", &"ballista", &"catapult",
 		&"mage", &"skyguard", &"trebuchet"]
 
+## Fähigkeiten mit Abklingzeit (Sekunden Spielzeit, zu Beginn bereit). Pechregen braucht ein Ziel auf der Karte,
+## sein Schaden wächst mit den Wellen wie die Lebenspunkte der Gegner.
+const ABILITIES := {
+	&"bell": {"name": "Glocke", "info": "Alle Gegner 4 s lang halb so schnell.", "cooldown": 40.0, "slow": 0.5, "time": 4.0},
+	&"pitch": {"name": "Pechregen", "info": "Brennendes Pech auf eine Stelle: Schaden und Brand im Umkreis.",
+		"cooldown": 45.0, "radius": 2.0, "damage": 30.0},
+	&"horn": {"name": "Kriegshorn", "info": "Alle Türme schießen 8 s lang doppelt so schnell.", "cooldown": 60.0, "time": 8.0},
+}
+const ABILITY_ORDER: Array[StringName] = [&"bell", &"pitch", &"horn"]
+
 ## Zielwahl der Türme, umschaltbar auf der Turm-Karte. "air" nur für Türme, die Boden und Luft treffen.
 const TARGET_MODES: Array[StringName] = [&"first", &"strong", &"weak", &"air"]
 const TARGET_NAMES := {&"first": "Vorderster", &"strong": "Stärkster", &"weak": "Schwächster", &"air": "Flieger zuerst"}

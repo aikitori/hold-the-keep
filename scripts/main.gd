@@ -23,6 +23,11 @@ var game_over := false
 var kills := 0
 ## Nach dem Sieg weiterspielen: die Wellen gehen ohne Ende weiter.
 var endless := false
+## Restliche Abklingzeit je Fähigkeit, 0 = bereit.
+var ability_wait: Dictionary = {}
+## Kriegshorn: so lange schießen alle Türme doppelt so schnell.
+var horn_time := 0.0
+var _aiming: StringName = &""  # Fähigkeit, die noch ein Ziel auf der Karte braucht
 var _queue: Array[StringName] = []
 var _spawn_timer := 0.0
 var _speed := 1.0
@@ -78,6 +83,9 @@ func _ready() -> void:
 		_leave()
 		get_tree().change_scene_to_file("res://scenes/menu.tscn"))
 	hud.endless_pressed.connect(continue_endless)
+	hud.ability_pressed.connect(use_ability)
+	for id: StringName in Defs.ABILITY_ORDER:
+		ability_wait[id] = 0.0
 	hud.pause_pressed.connect(func() -> void: set_paused(not get_tree().paused))
 	hud.toast("Baue Türme und lege ein Labyrinth: die Toten kommen vom Friedhof!")
 
@@ -294,6 +302,10 @@ func _show_ring(center: Vector3, radius: float) -> void:
 func _process(delta: float) -> void:
 	if game_over:
 		return
+	horn_time = maxf(0.0, horn_time - delta)
+	for id: StringName in ability_wait:
+		ability_wait[id] = maxf(0.0, ability_wait[id] - delta)
+	hud.update_abilities(ability_wait, _aiming)
 	if not _queue.is_empty():
 		_spawn_timer -= delta
 		if _spawn_timer <= 0.0:
@@ -345,6 +357,51 @@ func continue_endless() -> void:
 	countdown = Defs.WAVE_BREAK
 	hud.hide_end()
 	hud.toast("Endlosmodus: wie lange hält die Burg?")
+
+
+## Fähigkeit auslösen. Pechregen wartet auf einen Tipp auf die Karte (nochmal drücken bricht ab).
+func use_ability(id: StringName) -> void:
+	if game_over or ability_wait[id] > 0.0:
+		return
+	if id == &"pitch":
+		_aiming = &"" if _aiming == id else id
+		if _aiming != &"":
+			hud.clear_build()
+			_on_build_selected(&"")
+			hud.toast("Tippe auf die Stelle für den Pechregen")
+		else:
+			_ring.visible = false
+		return
+	var def: Dictionary = Defs.ABILITIES[id]
+	ability_wait[id] = def["cooldown"]
+	match id:
+		&"bell":
+			for enemy in enemies:
+				if enemy.alive:
+					enemy.apply_slow(def["slow"], def["time"])
+			Sfx.play(&"wave")
+		&"horn":
+			horn_time = def["time"]
+			Sfx.play(&"upgrade")
+	hud.toast("%s!" % def["name"])
+
+
+func cast_pitch(at: Vector3) -> void:
+	var def: Dictionary = Defs.ABILITIES[&"pitch"]
+	_aiming = &""
+	_ring.visible = false
+	ability_wait[&"pitch"] = def["cooldown"]
+	var damage: float = def["damage"] * Defs.health_factor(maxi(wave, 1)) * hp_factor
+	for enemy in enemies.duplicate():
+		if enemy.alive and not enemy.air and Vector2(enemy.position.x - at.x, enemy.position.z - at.z).length() <= def["radius"]:
+			enemy.take_damage(damage, true)
+			if enemy.alive:
+				enemy.apply_burn(damage * 0.2, 3.0)
+	for i in 6:
+		var spot: Vector3 = at + Vector3(randf_range(-1.0, 1.0), 0, randf_range(-1.0, 1.0)) * def["radius"] * 0.7
+		puff(spot, Color(0.15, 0.1, 0.05, 0.8))
+	puff(at, Color(1.0, 0.45, 0.1, 0.7))
+	Sfx.play_at(&"crash", at)
 
 
 ## Nächste Welle sofort: Bonus-Gold für die gesparte Zeit.
@@ -558,6 +615,8 @@ func sell_selected() -> void:
 
 func _on_build_selected(id: StringName) -> void:
 	select_tower(null)
+	if id != &"":
+		_aiming = &""
 	if _ghost != null:
 		_ghost.queue_free()
 		_ghost = null
@@ -590,7 +649,10 @@ func _move_ghost(at: Vector2i) -> void:
 
 
 func _cancel() -> void:
-	if _ghost_id != &"":
+	if _aiming != &"":
+		_aiming = &""
+		_ring.visible = false
+	elif _ghost_id != &"":
 		hud.clear_build()
 		_on_build_selected(&"")
 	else:
@@ -619,6 +681,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		var mm := event as InputEventMouseMotion
 		if _pressed:
 			_drag(mm.position)
+		elif _aiming != &"":
+			_show_ring(rig.ground_point(mm.position), Defs.ABILITIES[_aiming]["radius"])
 		elif _ghost != null:
 			_move_ghost(Board.cell_of(rig.ground_point(mm.position)))
 	elif event is InputEventScreenTouch:
@@ -693,6 +757,9 @@ func _release(at: Vector2, touch: bool) -> void:
 ## Ein Tipp auf das Spielfeld: bauen (mit Gerät erst Vorschau), Turm wählen oder Auswahl aufheben.
 func tap(at: Vector2, touch := false) -> void:
 	var cell := Board.cell_of(rig.ground_point(at))
+	if _aiming != &"":
+		cast_pitch(rig.ground_point(at))
+		return
 	if _ghost_id != &"":
 		if touch and cell != _ghost_cell:
 			_move_ghost(cell)

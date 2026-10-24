@@ -13,6 +13,7 @@ signal restart_pressed
 signal menu_pressed
 signal pause_pressed
 signal endless_pressed
+signal ability_pressed(id: StringName)
 signal target_pressed
 signal spec_pressed(spec_id: StringName)
 
@@ -57,6 +58,7 @@ var _end_panel := PanelContainer.new()
 var _end_title := Label.new()
 var _end_text := Label.new()
 var _endless_button := Button.new()
+var _ability_buttons: Dictionary = {}
 var _bars := Control.new()
 var _icons: Dictionary = {}
 
@@ -75,6 +77,7 @@ func _ready() -> void:
 	_build_top(root)
 	_build_bottom(root)
 	_build_card(root)
+	_build_abilities(root)
 	_build_end(root)
 	_build_pause(root)
 	_toast.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -262,6 +265,35 @@ func _icon(id: StringName) -> Texture2D:
 	viewport.add_child(env)
 	_icons[id] = viewport
 	return viewport.get_texture()
+
+
+## Fähigkeiten links am Rand, jede mit Restzeit.
+func _build_abilities(root: Control) -> void:
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER_LEFT)
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	panel.offset_left = 8
+	root.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	panel.add_child(box)
+	for id: StringName in Defs.ABILITY_ORDER:
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(124, 52)
+		button.tooltip_text = Defs.ABILITIES[id]["info"]
+		button.add_theme_font_size_override("font_size", 17)
+		button.pressed.connect(func() -> void: ability_pressed.emit(id))
+		box.add_child(button)
+		_ability_buttons[id] = button
+
+
+func update_abilities(wait: Dictionary, aiming: StringName) -> void:
+	for id: StringName in _ability_buttons:
+		var button: Button = _ability_buttons[id]
+		var name: String = Defs.ABILITIES[id]["name"]
+		var rest: float = wait[id]
+		button.disabled = rest > 0.0
+		button.text = "%s\n%d s" % [name, ceili(rest)] if rest > 0.0 else ("Ziel wählen" if aiming == id else name)
 
 
 func _on_build_toggled(id: StringName, on: bool) -> void:

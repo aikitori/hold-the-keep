@@ -120,6 +120,16 @@ Gegner-Tod (Skelette klappern, Geister heulen, Bosse brüllen beim Auftauchen), 
 Gong zu jeder Welle und ein Jingle bei Sieg oder Niederlage. Klänge auf der Karte sind nur zu hören, wenn die
 Stelle im Bild ist; gleiche Klänge sind begrenzt (höchstens 2 bis 3 gleichzeitig, 70 ms Abstand).
 
+## Fähigkeiten
+
+Links am Rand, jede mit Abklingzeit (zu Beginn bereit, läuft nur, solange gespielt wird):
+
+| Fähigkeit | Abklingzeit | Wirkung |
+|---|---|---|
+| Glocke | 40 s | alle Gegner 4 s lang halb so schnell |
+| Pechregen | 45 s | Ziel antippen: 30 Schaden (wächst wie die Lebenspunkte der Gegner) im Umkreis von 2 Feldern, geht durch Rüstung, danach Brand; trifft keine Flieger |
+| Kriegshorn | 60 s | alle Türme schießen 8 s lang doppelt so schnell |
+
 ## Pause
 
 "Pause" oben (oder Taste P) hält das Spiel an und zeigt Weiter, Neu starten und Zum Menü. Geht die App in den

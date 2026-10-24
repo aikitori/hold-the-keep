@@ -16,6 +16,7 @@ func _ready() -> void:
 		_check(Sfx._streams[id] is AudioStream, "Klang %s geladen" % id)
 	Sfx.muted = true  # Wiedergaben, die beim Beenden noch laufen, meldet Godot als hängend.
 	Settings.file = "user://logic_test.cfg"
+	Settings.save_file = "user://logic_test_save.cfg"
 	DirAccess.remove_absolute(Settings.file)
 	Settings.difficulty = &"normal"
 	Lang.apply("de")  # Prüfungen erwarten deutsche Texte, egal welche Sprache eingestellt ist
@@ -133,6 +134,28 @@ func _test_maps() -> void:
 			"Welle 4 ist eine Luftwelle")
 	for id: StringName in Defs.SPECS:
 		_check((Defs.SPECS[id] as Array).size() == 2, "%s hat zwei Spezialisierungen" % id)
+
+
+## Spielstand: speichern in der Bauzeit, ein zweites Spiel setzt mit denselben Türmen und Werten fort.
+func _test_resume(main: Main) -> void:
+	main.wave = 3
+	main.autosave()
+	var saved := Settings.saved_game()
+	Main.resume = saved
+	var copy: Main = load("res://scenes/main.tscn").instantiate()
+	add_child(copy)
+	await get_tree().process_frame
+	var same := copy.board.towers.size() == main.board.towers.size()
+	for cell: Vector2i in main.board.towers:
+		var a: Tower = main.board.towers[cell]
+		var b: Tower = copy.board.towers.get(cell)
+		same = same and b != null and b.id == a.id and b.level == a.level and b.spec_id == a.spec_id \
+				and b.invested == a.invested and not b.refundable
+	_check(not saved.is_empty() and same and copy.gold == main.gold and copy.wave == 3 and copy.countdown > 0.0
+			and Main.resume.is_empty(), "Spielstand: Türme, Stufen, Gold und Welle kommen wieder (%d Türme)" % copy.board.towers.size())
+	copy.queue_free()
+	await get_tree().process_frame
+	main.wave = 0
 
 
 ## Glocke verlangsamt, Pechregen trifft am Ziel, Kriegshorn läuft ab, Abklingzeiten sperren.
@@ -407,6 +430,7 @@ func _play() -> void:
 	_check(tower.spec_id == options[1]["id"] and tower.spec_options().is_empty(), "Spezialisiert: %s" % tower.title())
 	var sky: Tower = main.try_build(&"skyguard", Vector2i(15, 8))
 	_check(sky != null and sky.targets() == "air", "Himmelswacht trifft nur Luft")
+	await _test_resume(main)
 	Engine.time_scale = 8.0
 	main.countdown = 0.1
 	var waited := 0.0
@@ -442,6 +466,7 @@ func _play() -> void:
 	_check(small == 10 and main.gold == 2025, "Zinsen 5 %%, höchstens 25 (%d)" % small)
 	main.wave = Defs.WAVES
 	main._finish(true)
+	_check(Settings.saved_game().is_empty(), "Nach dem Ende ist der Spielstand gelöscht")
 	main.continue_endless()
 	_check(not main.game_over and main.endless and main.countdown > 0.0 and not Defs.wave(Defs.WAVES + 5).is_empty(),
 			"Nach dem Sieg geht es endlos weiter")

@@ -10,6 +10,7 @@ func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	Main.map_id = StringName(args[0]) if args.size() > 0 else &"vier_felder"
 	Settings.file = "user://balance.cfg"
+	Settings.save_file = "user://balance_save.cfg"
 	Settings.difficulty = StringName(args[1]) if args.size() > 1 else &"normal"
 	Sfx.muted = true
 	var main: Main = load("res://scenes/main.tscn").instantiate()

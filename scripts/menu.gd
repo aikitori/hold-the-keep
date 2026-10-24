@@ -41,6 +41,19 @@ func _ready() -> void:
 	tagline.custom_minimum_size.x = 420
 	column.add_child(tagline)
 	column.add_child(_options())
+	var saved := Settings.saved_game()
+	if not saved.is_empty() and MapData.MAPS.has(saved.get("map", &"")):
+		var resume := Button.new()
+		resume.text = tr("Weiterspielen: %s, Welle %d (%s)") % [tr(MapData.MAPS[saved["map"]]["name"]), int(saved["wave"]) + 1,
+				tr(Defs.DIFFICULTIES[saved["difficulty"]]["name"])]
+		resume.custom_minimum_size = Vector2(420, 52)
+		resume.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		resume.pressed.connect(func() -> void:
+			Sfx.play(&"click")
+			Main.map_id = saved["map"]
+			Main.resume = saved
+			get_tree().change_scene_to_file(MAIN_SCENE))
+		column.add_child(resume)
 	var grid := _grid
 	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	grid.add_theme_constant_override("h_separation", 16)
@@ -170,7 +183,8 @@ func _card(id: StringName) -> PanelContainer:
 	var facts := Label.new()
 	var checkpoints := map.waypoints.size() - 1
 	facts.text = tr("%d x %d Felder · %s") % [map.size.x, map.size.y,
-			tr("%d Kontrollpunkte") % checkpoints if checkpoints > 0 else tr("ohne Kontrollpunkte")]
+			tr("1 Kontrollpunkt") if checkpoints == 1 else tr("%d Kontrollpunkte") % checkpoints if checkpoints > 1
+			else tr("ohne Kontrollpunkte")]
 	facts.add_theme_font_size_override("font_size", 16)
 	facts.add_theme_color_override("font_color", Color("#c9b994"))
 	box.add_child(facts)

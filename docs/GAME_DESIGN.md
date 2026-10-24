@@ -147,6 +147,13 @@ Links am Rand, jede mit Abklingzeit (zu Beginn bereit, läuft nur, solange gespi
 1 bis 9 bauen (nochmal drücken wählt ab), Q W E Fähigkeiten, U ausbauen, Entf oder X abreißen, T Zielwahl,
 Leertaste nächste Welle, P Pause, Esc oder rechte Maustaste bricht ab.
 
+## Spielstand
+
+Ein laufendes Spiel wird zwischen den Wellen gespeichert (nach jedem Bauen, Ausbauen und Abreißen in der Bauzeit,
+am Ende jeder Welle und wenn die App in den Hintergrund geht). Das Menü bietet dann "Weiterspielen" an; wer
+mitten in einer Welle geschlossen hat, beginnt diese Welle neu. Es gibt einen Platz: ein neues Spiel ersetzt ihn,
+das Ende (Sieg oder Niederlage) löscht ihn. Die Schwierigkeit kommt aus dem Spielstand.
+
 ## Pause
 
 "Pause" oben (oder Taste P) hält das Spiel an und zeigt Weiter, Neu starten und Zum Menü. Geht die App in den
@@ -184,4 +191,4 @@ Mitte und verschieben zugleich, danach zieht der übrige Finger ohne Sprung weit
 ## Ideen für später
 
 - Mehr Karten.
-- Laufendes Spiel speichern.
+- Mehrere Spielstände.

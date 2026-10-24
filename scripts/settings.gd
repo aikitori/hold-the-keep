@@ -6,6 +6,8 @@ signal changed
 
 ## Tests leiten auf eine eigene Datei um, damit echte Bestwerte unberührt bleiben.
 var file := "user://settings.cfg"
+## Laufendes Spiel (ein Platz), getrennt von den Einstellungen.
+var save_file := "user://savegame.cfg"
 
 var difficulty: StringName = &"normal"
 ## Beim ersten Start die Sprache des Systems (Deutsch, sonst Englisch).
@@ -58,11 +60,29 @@ func best(map_id: StringName, level: StringName = difficulty) -> Dictionary:
 
 
 ## Nur Verbesserungen werden gespeichert.
-func record(map_id: StringName, wave: int, won: bool) -> void:
-	var old := best(map_id)
+func record(map_id: StringName, wave: int, won: bool, level: StringName = difficulty) -> void:
+	var old := best(map_id, level)
 	if wave <= int(old["wave"]) and (not won or old["won"]):
 		return
-	_store("progress", "%s/%s" % [map_id, difficulty], {"wave": maxi(wave, int(old["wave"])), "won": won or old["won"]})
+	_store("progress", "%s/%s" % [map_id, level], {"wave": maxi(wave, int(old["wave"])), "won": won or old["won"]})
+
+
+## Laufendes Spiel: Stand zwischen zwei Wellen (siehe Main.snapshot), leer wenn keins.
+func saved_game() -> Dictionary:
+	var config := ConfigFile.new()
+	if config.load(save_file) != OK:
+		return {}
+	return config.get_value("game", "state", {})
+
+
+func save_game(state: Dictionary) -> void:
+	var config := ConfigFile.new()
+	config.set_value("game", "state", state)
+	config.save(save_file)
+
+
+func clear_game() -> void:
+	DirAccess.remove_absolute(save_file)
 
 
 func _config() -> ConfigFile:

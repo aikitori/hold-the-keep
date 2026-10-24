@@ -7,6 +7,8 @@ extends Node3D
 const DRAG_THRESHOLD := 12.0
 ## Karte für das nächste Spiel (setzt das Menü).
 static var map_id: StringName = &"vier_felder"
+## Gespeicherter Stand zum Fortsetzen (setzt das Menü, leer = neues Spiel).
+static var resume: Dictionary = {}
 
 var map: MapData
 var board: Board
@@ -17,6 +19,7 @@ var gold := 0
 var lives := 0
 ## Faktor der Schwierigkeit auf die Lebenspunkte der Gegner.
 var hp_factor := 1.0
+var difficulty: StringName = &"normal"
 var wave := 0
 var countdown := Defs.FIRST_WAVE_DELAY
 var game_over := false
@@ -50,7 +53,10 @@ var _pinch_distance := 0.0
 
 func _ready() -> void:
 	Engine.time_scale = 1.0
-	var level: Dictionary = Defs.DIFFICULTIES[Settings.difficulty]
+	var state := resume
+	resume = {}
+	difficulty = StringName(state.get("difficulty", Settings.difficulty))
+	var level: Dictionary = Defs.DIFFICULTIES[difficulty]
 	gold = level["gold"]
 	lives = level["lives"]
 	hp_factor = level["hp"]
@@ -91,7 +97,12 @@ func _ready() -> void:
 	for id: StringName in Defs.ABILITY_ORDER:
 		ability_wait[id] = 0.0
 	hud.pause_pressed.connect(func() -> void: set_paused(not get_tree().paused))
-	hud.toast(tr("Baue Türme und lege ein Labyrinth: die Toten kommen vom Friedhof!"))
+	if state.is_empty():
+		Settings.clear_game()  # ein neues Spiel ersetzt den alten Stand
+		hud.toast(tr("Baue Türme und lege ein Labyrinth: die Toten kommen vom Friedhof!"))
+	else:
+		_restore(state)
+		hud.toast(tr("Weiter ab Welle %d") % (wave + 1))
 	Sfx.music(&"build")
 
 
@@ -330,13 +341,14 @@ func _process(delta: float) -> void:
 			_start_wave()
 	elif enemies.is_empty():
 		# Die Pause beginnt erst, wenn der letzte Gegner der Welle besiegt ist oder die Burg erreicht hat.
-		Settings.record(map_id, wave, false)
+		Settings.record(map_id, wave, false, difficulty)
 		if wave >= Defs.WAVES and not endless:
 			_finish(true)
 		else:
 			countdown = Defs.WAVE_BREAK
 			_pay_interest()
 			Sfx.music(&"build")
+			autosave()
 	hud.update_stats(gold, lives, wave, countdown if _queue.is_empty() else 0.0, _speed, endless,
 			enemies.size() + _queue.size())
 	if _selected != null:
@@ -344,6 +356,7 @@ func _process(delta: float) -> void:
 
 
 func _start_wave() -> void:
+	autosave()  # Stand vor der Welle: wer jetzt schließt, setzt hier wieder an
 	wave += 1
 	countdown = 0.0
 	for tower: Variant in board.towers.values():
@@ -376,6 +389,7 @@ func continue_endless() -> void:
 	countdown = Defs.WAVE_BREAK
 	hud.hide_end()
 	Sfx.music(&"build")
+	autosave()
 	hud.toast(tr("Endlosmodus: wie lange hält die Burg?"))
 
 
@@ -490,8 +504,9 @@ func enemy_reached_keep(enemy: Enemy) -> void:
 func _finish(won: bool) -> void:
 	game_over = true
 	Engine.time_scale = 1.0
+	Settings.clear_game()
 	if won:
-		Settings.record(map_id, wave, true)
+		Settings.record(map_id, wave, true, difficulty)
 	hud.show_end(won, wave, _stats())
 	Sfx.music(&"")
 	Sfx.play(&"victory" if won else &"defeat")
@@ -519,12 +534,52 @@ func set_paused(on: bool) -> void:
 ## Handy: App in den Hintergrund (Anruf, anderer Tab) hält das Spiel an.
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED] and is_inside_tree():
+		autosave()
 		set_paused(true)
 
 
 func _leave() -> void:
 	get_tree().paused = false
 	Engine.time_scale = 1.0
+
+
+## Speichern geht nur zwischen den Wellen (keine Gegner unterwegs, keine in der Warteschlange).
+func autosave() -> void:
+	if not game_over and _queue.is_empty() and enemies.is_empty():
+		Settings.save_game(snapshot())
+
+
+func snapshot() -> Dictionary:
+	var towers: Array = []
+	for tower: Variant in board.towers.values():
+		if tower is Tower:
+			towers.append({"cell": tower.cell, "id": tower.id, "level": tower.level, "spec": tower.spec_id,
+					"target": tower.target_mode, "invested": tower.invested, "kills": tower.kills})
+	return {"map": map_id, "difficulty": difficulty, "wave": wave, "gold": gold, "lives": lives, "endless": endless,
+			"kills": kills, "gold_earned": gold_earned, "towers_built": towers_built, "abilities": ability_wait.duplicate(),
+			"towers": towers}
+
+
+func _restore(state: Dictionary) -> void:
+	wave = state["wave"]
+	gold = state["gold"]
+	lives = state["lives"]
+	endless = state["endless"]
+	kills = state["kills"]
+	gold_earned = state["gold_earned"]
+	towers_built = state["towers_built"]
+	ability_wait.merge(state["abilities"], true)
+	countdown = Defs.FIRST_WAVE_DELAY if wave == 0 else Defs.WAVE_BREAK
+	for entry: Dictionary in state["towers"]:
+		var tower := _place(entry["id"], entry["cell"])
+		for i in int(entry["level"]) - 1:
+			tower.upgrade()
+		if entry["spec"] != &"":
+			tower.specialize(entry["spec"])
+		tower.target_mode = entry["target"]
+		tower.invested = entry["invested"]
+		tower.kills = entry["kills"]
+		tower.refundable = false
 
 
 func _cycle_speed() -> void:
@@ -591,12 +646,18 @@ func try_build(id: StringName, at: Vector2i) -> Tower:
 		_refuse(tr(BUILD_MESSAGES[check]))
 		return null
 	gold -= cost
+	var tower := _place(id, at)
+	towers_built += 1
+	Sfx.play(&"build")
+	autosave()
+	return tower
+
+
+func _place(id: StringName, at: Vector2i) -> Tower:
 	var tower := Tower.new()
 	add_child(tower)
 	tower.setup(id, at, self, Tower.HIGH if map.cell(at) == MapData.Cell.HIGH else Tower.GROUND)
 	board.place(at, tower)
-	towers_built += 1
-	Sfx.play(&"build")
 	return tower
 
 
@@ -624,6 +685,7 @@ func upgrade_selected() -> void:
 	gold -= cost
 	_selected.upgrade()
 	Sfx.play(&"upgrade")
+	autosave()
 	_show_ring(_selected.position, _selected.reach())
 
 
@@ -637,6 +699,7 @@ func specialize_selected(spec_id: StringName) -> void:
 	gold -= cost
 	_selected.specialize(spec_id)
 	Sfx.play(&"spec")
+	autosave()
 	_show_ring(_selected.position, _selected.reach())
 	hud.toast("%s: %s" % [tr(Defs.TOWERS[_selected.id]["name"]), tr(Defs.spec(_selected.id, spec_id)["name"])])
 
@@ -649,6 +712,7 @@ func sell_selected() -> void:
 	board.remove(_selected.cell)
 	_selected.queue_free()
 	select_tower(null)
+	autosave()
 
 
 func _on_build_selected(id: StringName) -> void:

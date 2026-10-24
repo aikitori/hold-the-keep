@@ -22,6 +22,7 @@ const EN := {
 	"Noch nicht gespielt": "Not played yet",
 	"%d x %d Felder · %s": "%d x %d fields · %s",
 	"%d Kontrollpunkte": "%d checkpoints",
+	"1 Kontrollpunkt": "1 checkpoint",
 	"ohne Kontrollpunkte": "no checkpoints",
 	"Spielen": "Play",
 	# Oberfläche im Spiel
@@ -175,6 +176,9 @@ const EN := {
 	"zerfällt": "splits",
 	"ruft Skelette": "summons skeletons",
 	"%s · %d Gegner": "%s · %d enemies",
+	# Spielstand
+	"Weiterspielen: %s, Welle %d (%s)": "Continue: %s, wave %d (%s)",
+	"Weiter ab Welle %d": "Continuing from wave %d",
 	# Statistik, Tasten
 	"Besiegt: %d · Gold verdient: %d · Türme gebaut: %d": "Defeated: %d · Gold earned: %d · Towers built: %d",
 	"Bester Turm: %s (Stufe %d) mit %d Siegen": "Best tower: %s (level %d) with %d kills",

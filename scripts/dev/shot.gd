@@ -1,17 +1,21 @@
 extends Node
-## Screenshots (braucht ein Fenster oder Xvfb): godot res://scenes/dev/shot.tscn -- <Ordner> <karte|menu|hud> [en]
+## Screenshots (braucht ein Fenster oder Xvfb): godot res://scenes/dev/shot.tscn -- <Ordner> <karte|menu|hud> [en] [weiter]
 ## Baut Türme neben den Weg, spielt im Zeitraffer an und speichert Übersicht, Nahansicht und Turm-Karte.
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var folder: String = args[0] if args.size() > 0 else "user://"
 	var what: String = args[1] if args.size() > 1 else "vier_felder"
+	Settings.save_file = "user://shot_save.cfg"  # echter Spielstand bleibt unberührt
 	if args.has("en"):
 		Lang.apply("en")  # nur für dieses Bild, nicht gespeichert
 	if what == "icon":
 		await _icon(folder)
 		return
 	if what == "menu":
+		DirAccess.remove_absolute(Settings.save_file)
+		if args.has("weiter"):
+			Settings.save_game({"map": &"rundlauf", "wave": 11, "difficulty": &"normal"})
 		add_child(load("res://scenes/menu.tscn").instantiate())
 		await _frames(4)
 		get_viewport().get_texture().get_image().save_png(folder + "/menu.png")

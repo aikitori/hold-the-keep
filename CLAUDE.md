@@ -29,7 +29,8 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
   Musik: `Sfx.music(&"build"|&"battle"|&"")`, Schleifen neu erzeugen mit `python3 tools/make_music.py` (reines
   Python), Import mit QOA-Kompression und Schleife (`edit/loop_mode=2` in den `.import`-Dateien).
 - `scripts/settings.gd` (Autoload `Settings`): Schwierigkeit, Grafikstufe, Bestwerte je Karte und Schwierigkeit
-  in `user://settings.cfg`. Der Test leitet `Settings.file` auf eine eigene Datei um.
+  in `user://settings.cfg`, laufendes Spiel in `user://savegame.cfg` (`Main.snapshot`/`_restore`, nur zwischen
+  Wellen). Test, Bot und Screenshots leiten `Settings.file` und `Settings.save_file` auf eigene Dateien um.
 - `scripts/ui_scale.gd` (Autoload `UiScale`): vergrößert die Oberfläche auf Touch-Geräten, `narrow` im
   Hochformat, `compact` quer auf Handys (Am Rechner: `--resolution 1920x864 -- --touch-ui`). HUD und Menü hängen an `UiScale.changed`. Am Rechner testen mit `-- --touch-ui` und
   `--resolution 864x1920`.

@@ -365,6 +365,38 @@ func _test_touch_drag(main: Main) -> void:
 	rig.camera.size = size
 
 
+## Massenbau: im Baumodus baut Ziehen eine Reihe. Tipp auf den Turmkörper wählt den Turm, auch im Baumodus.
+func _test_mass_build(main: Main) -> void:
+	var camera := main.rig.camera
+	var screen := func(cell: Vector2i) -> Vector2: return camera.unproject_position(Board.world_of(cell, Tower.GROUND))
+	main.rig.position = Board.world_of(Vector2i(6, 4))
+	main.gold = 100
+	main._on_build_selected(&"wall")
+	var before: int = main.board.towers.size()
+	main._unhandled_input(_touch(0, screen.call(Vector2i(3, 3)), true))
+	main._unhandled_input(_drag_event(0, screen.call(Vector2i(4, 3))))
+	main._unhandled_input(_drag_event(0, screen.call(Vector2i(8, 3))))  # Sprung: Lücke wird gefüllt
+	main._unhandled_input(_touch(0, screen.call(Vector2i(8, 3)), false))
+	var row := range(3, 9).filter(func(x: int) -> bool: return main.board.towers.has(Vector2i(x, 3)))
+	_check(main.board.towers.size() - before == 6 and row.size() == 6 and main.gold == 70,
+			"Massenbau: Ziehen baut eine lückenlose Reihe (%d Mauern)" % (main.board.towers.size() - before))
+	var wall: Tower = main.board.towers[Vector2i(5, 3)]
+	main.tap(screen.call(Vector2i(5, 3)), true)
+	_check(main._selected == wall and main._ghost_id == &"", "Tipp auf einen Turm im Baumodus wählt ihn aus")
+	main.select_tower(null)
+	var archer: Tower = main.try_build(&"archer", Vector2i(6, 5))
+	var body := camera.unproject_position(archer.global_position + Vector3(0, Tower.GROUND + archer.height() * 0.8, 0))
+	main.tap(body)
+	_check(main._selected == archer and Board.cell_of(main.rig.ground_point(body)) != archer.cell,
+			"Tipp auf den sichtbaren Turmkörper wählt den Turm, nicht das Feld dahinter")
+	main.select_tower(null)
+	for cell: Vector2i in main.board.towers.keys():
+		if cell.y in [3, 5] and cell.x < 10:
+			main.select_tower(main.board.towers[cell])
+			main.sell_selected()
+	main.gold = 90
+
+
 static func _touch(index: int, at: Vector2, pressed: bool) -> InputEventScreenTouch:
 	var event := InputEventScreenTouch.new()
 	event.index = index
@@ -389,6 +421,7 @@ func _play() -> void:
 	_check(Sfx._music_id == &"build" and Sfx.MUSIC[&"battle"].loop_mode == AudioStreamWAV.LOOP_FORWARD,
 			"Baumusik gewählt, Musik läuft als Schleife")
 	_test_touch_drag(main)
+	_test_mass_build(main)
 	main.set_paused(true)
 	main.call_next_wave()
 	main.use_ability(&"bell")

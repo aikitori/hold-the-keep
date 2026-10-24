@@ -1,8 +1,9 @@
 class_name Main
 extends Node3D
 ## Hauptszene: baut die Karte aus Kenney-Kacheln, steuert Wellen, Gold, Leben und die Eingabe.
-## Tippen oder Klicken baut (mit Gerät: erst Vorschau, zweiter Tipp baut), Ziehen verschiebt die Karte,
-## Mausrad oder zwei Finger zoomen.
+## Tippen oder Klicken baut, im Baumodus baut Ziehen eine Reihe
+## (Massenbau), sonst verschiebt Ziehen die Karte. Im Baumodus verschieben zwei Finger, rechte oder mittlere
+## Maustaste. Mausrad oder zwei Finger zoomen.
 
 const DRAG_THRESHOLD := 12.0
 ## Spielstände mit anderer Version werden verworfen (erhöhen, wenn sich `snapshot` ändert).
@@ -43,12 +44,15 @@ var _speed := 1.0
 var _selected: Tower = null
 var _ghost: Node3D
 var _ghost_id: StringName = &""
-var _ghost_cell := Vector2i(-99, -99)
 var _ring := MeshInstance3D.new()
 var _path_view := PathView.new()
 var _down_pos := Vector2.ZERO
 var _dragging := false
 var _pressed := false
+var _build_drag := false  # Massenbau: Ziehen im Baumodus baut auf jedem überstrichenen Feld
+var _last_build := Vector2i(-99, -99)
+var _pan_button := false  # rechte oder mittlere Maustaste hält die Karte
+var _pan_moved := false
 var _touches: Dictionary = {}
 var _pinch_distance := 0.0
 
@@ -647,14 +651,17 @@ const BUILD_MESSAGES := {
 }
 
 
-func try_build(id: StringName, at: Vector2i) -> Tower:
+## quiet: beim Massenbau keine Meldung je Feld, Felder, die nicht gehen, werden übersprungen.
+func try_build(id: StringName, at: Vector2i, quiet := false) -> Tower:
 	var cost: int = Defs.TOWERS[id]["cost"]
 	if gold < cost:
-		_refuse(tr("Zu wenig Gold"))
+		if not quiet:
+			_refuse(tr("Zu wenig Gold"))
 		return null
 	var check := board.check_build(at, walkers())
 	if check != Board.BuildCheck.OK:
-		_refuse(tr(BUILD_MESSAGES[check]))
+		if not quiet:
+			_refuse(tr(BUILD_MESSAGES[check]))
 		return null
 	gold -= cost
 	var tower := _place(id, at)
@@ -734,7 +741,6 @@ func _on_build_selected(id: StringName) -> void:
 		_ghost.queue_free()
 		_ghost = null
 	_ghost_id = id
-	_ghost_cell = Vector2i(-99, -99)
 	_ring.visible = false
 	_path_view.show_paths(board.full_paths())
 	if id == &"":
@@ -748,7 +754,6 @@ func _on_build_selected(id: StringName) -> void:
 func _move_ghost(at: Vector2i) -> void:
 	if _ghost == null:
 		return
-	_ghost_cell = at
 	_ghost.visible = map.cell(at) != MapData.Cell.BLOCKED
 	_ghost.position = Board.world_of(at, Tower.HIGH - Tower.GROUND if map.cell(at) == MapData.Cell.HIGH else 0.0)
 	var ok: bool = board.check_build(at, walkers()) == Board.BuildCheck.OK and gold >= Defs.TOWERS[_ghost_id]["cost"]
@@ -785,8 +790,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			rig.zoom(0.9)
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
 			rig.zoom(1.1)
-		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
-			_cancel()
+		elif mb.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
+			# Halten und ziehen verschiebt die Karte, ein Rechtsklick ohne Ziehen bricht ab.
+			if mb.pressed:
+				_pan_button = true
+				_pan_moved = false
+				_down_pos = mb.position
+				rig.grab(mb.position)
+			else:
+				if mb.button_index == MOUSE_BUTTON_RIGHT and not _pan_moved:
+					_cancel()
+				_pan_button = false
 		elif mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
 				_press(mb.position)
@@ -794,7 +808,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				_release(mb.position, false)
 	elif event is InputEventMouseMotion and event.device != InputEvent.DEVICE_ID_EMULATION:
 		var mm := event as InputEventMouseMotion
-		if _pressed:
+		if _pan_button:
+			_pan_moved = _pan_moved or mm.position.distance_to(_down_pos) > DRAG_THRESHOLD
+			rig.drag_to(mm.position)
+		elif _pressed:
 			_drag(mm.position)
 		elif _aiming != &"":
 			_show_ring(rig.ground_point(mm.position), Defs.ABILITIES[_aiming]["radius"])
@@ -807,7 +824,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _touches.size() == 1:
 				_press(touch.position)
 			else:
-				_dragging = true  # zwei Finger: nie als Tipp werten
+				_dragging = true  # zwei Finger: nie als Tipp werten, Massenbau endet
+				_build_drag = false
 				_pinch_distance = _finger_distance()
 				rig.grab(_finger_center())
 		else:
@@ -850,23 +868,82 @@ func _finger_center() -> Vector2:
 func _press(at: Vector2) -> void:
 	_pressed = true
 	_dragging = false
+	_build_drag = false
 	_down_pos = at
+	_last_build = Board.cell_of(rig.ground_point(at))
 	rig.grab(at)
 
 
 func _drag(at: Vector2) -> void:
 	if not _dragging and at.distance_to(_down_pos) > DRAG_THRESHOLD:
 		_dragging = true
-	if _dragging:
+		# Im Baumodus wird aus dem Ziehen ein Massenbau, der auf dem Startfeld beginnt.
+		_build_drag = _ghost_id != &"" and not game_over and not hud.blocks(_down_pos)
+		if _build_drag:
+			_build_at(_last_build)
+	if not _dragging:
+		return
+	if _build_drag:
+		var cell := Board.cell_of(rig.ground_point(at))
+		if cell != _last_build:
+			for step in _line(_last_build, cell):
+				if not _build_at(step):
+					_build_drag = false  # kein Gold mehr
+					break
+			_last_build = cell
+	else:
 		rig.drag_to(at)
+
+
+## Massenbau auf einem Feld: belegte, gesperrte oder versperrende Felder werden still übersprungen.
+## false, wenn das Gold nicht mehr reicht.
+func _build_at(cell: Vector2i) -> bool:
+	if gold < Defs.TOWERS[_ghost_id]["cost"]:
+		_refuse(tr("Zu wenig Gold"))
+		return false
+	if not board.towers.has(cell):
+		try_build(_ghost_id, cell, true)
+	_move_ghost(cell)
+	return true
+
+
+## Felder von `from` (ohne) bis `to` (mit), lückenlos auch bei schnellem Ziehen.
+static func _line(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	var steps := maxi(absi(to.x - from.x), absi(to.y - from.y))
+	for i in range(1, steps + 1):
+		var t := float(i) / steps
+		out.append(Vector2i(roundi(lerpf(from.x, to.x, t)), roundi(lerpf(from.y, to.y, t))))
+	return out
 
 
 func _release(at: Vector2, touch: bool) -> void:
 	_pressed = false
+	_build_drag = false
 	if _dragging or game_over or hud.blocks(at):
 		_dragging = false
 		return
 	tap(at, touch)
+
+
+## Turm, dessen sichtbarer Körper unter der Bildschirmstelle liegt. In der Schrägsicht ragt ein Turm über die
+## Felder dahinter, deshalb zählt die Strecke vom Fuß bis zur Spitze im Bild, nicht das Bodenfeld.
+func tower_at(screen: Vector2) -> Tower:
+	var camera := rig.camera
+	var best: Tower = null
+	var best_distance := INF
+	for tower: Variant in board.towers.values():
+		if not tower is Tower:
+			continue
+		var foot: Vector3 = tower.global_position + Vector3(0, Tower.GROUND, 0)
+		var base := camera.unproject_position(foot)
+		var top := camera.unproject_position(foot + Vector3(0, tower.height(), 0))
+		var radius := base.distance_to(camera.unproject_position(foot + Vector3(0.45, 0, -0.45)))
+		var distance := Geometry2D.get_closest_point_to_segment(screen, base, top).distance_to(screen)
+		if distance < radius and distance < best_distance:
+			best = tower
+			best_distance = distance
+	return best
 
 
 ## Ein Tipp auf das Spielfeld: bauen (mit Gerät erst Vorschau), Turm wählen oder Auswahl aufheben.
@@ -880,13 +957,18 @@ func tap(at: Vector2, touch := false) -> void:
 		cast_pitch(rig.ground_point(at))
 		return
 	if _ghost_id != &"":
-		if touch and cell != _ghost_cell:
-			_move_ghost(cell)
+		if board.towers.has(cell):
+			# Tipp auf einen Turm: auswählen statt Fehlermeldung, der Baumodus endet.
+			var tower: Variant = board.towers[cell]
+			hud.clear_build()
+			_on_build_selected(&"")
+			select_tower(tower)
 			return
+		# Ein Tipp baut (auch mit Touch): Fehlgriffe gibt Abreißen in derselben Bauzeit voll zurück.
 		if try_build(_ghost_id, cell) != null:
 			_move_ghost(cell)
 		return
-	if board.towers.has(cell):
-		select_tower(board.towers[cell])
-	else:
-		select_tower(null)
+	var picked := tower_at(at)
+	if picked == null and board.towers.get(cell) is Tower:
+		picked = board.towers[cell]
+	select_tower(picked)

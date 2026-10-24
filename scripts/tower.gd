@@ -101,6 +101,11 @@ static func build_model(tower_id: StringName, tower_level: int, spec := &"") -> 
 	return root
 
 
+## Sichtbare Höhe über dem Boden (für die Auswahl per Tipp).
+func height() -> float:
+	return _muzzle_height
+
+
 func title() -> String:
 	var name: String = Defs.TOWERS[id]["name"]
 	return Defs.spec(id, spec_id)["name"] if spec_id != &"" else name

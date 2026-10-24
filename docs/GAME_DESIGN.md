@@ -57,6 +57,12 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 
 ## Bauen
 
+- Turm in der Bauleiste wählen, dann baut jeder Tipp oder Klick einen. Gedrückt halten und ziehen baut auf jedem
+  überstrichenen Feld (Massenbau, auch für Mauerreihen); Felder, die nicht gehen, werden übersprungen. Im Baumodus
+  verschieben zwei Finger, die rechte oder mittlere Maustaste die Karte. Ein Tipp auf einen Turm wählt ihn aus.
+- Ausgewählt wird, was man sieht: ein Tipp auf den Turmkörper trifft den Turm, auch wenn darunter am Boden schon
+  das Feld dahinter liegt.
+
 - Gebaut wird auf Gras (begehbar, also Teil des Labyrinths) und auf Hochflächen (nicht begehbar, Türme dort
   ändern den Weg nie). Feste Wege, Kontrollpunkte und Wald sind tabu.
 - Kein Bau darf einen Abschnitt des Wegs (Start, Kontrollpunkte, Burg) ganz versperren oder einen Gegner

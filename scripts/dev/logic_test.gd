@@ -55,6 +55,8 @@ func _ready() -> void:
 			and maze.flight_legs == board.flight_legs,
 			"Flieger folgen dem Grundweg durch alle Felder, Türme ändern die Route nicht (%.1f)" % maze.flight_lengths[-1])
 	_test_maps()
+	_check(Defs.wave_preview(12).contains("Schwarzer Ritter (Rüstung") and Defs.wave_preview(4).contains("fliegt")
+			and Defs.wave_preview(5).contains("Boss"), "Wellenvorschau nennt Arten und Besonderheiten: %s" % Defs.wave_preview(12))
 	var boss_wave := Defs.wave(5)
 	_check(boss_wave[0] == &"vampire" and Defs.wave(10)[0] == &"keeper", "Bosse in Welle 5 und 10")
 	var seen := {}

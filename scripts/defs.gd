@@ -206,6 +206,35 @@ static func wave_names(list: Array[StringName]) -> String:
 	return ", ".join(names)
 
 
+## Vorschau einer Welle: Arten mit ihren Besonderheiten, z.B. "Ghul (heilt), Irrlicht (fliegt, schnell)".
+static func wave_preview(number: int) -> String:
+	var list := wave(number)
+	var parts: Array[String] = []
+	var seen := {}
+	for kind in list:
+		if seen.has(kind):
+			continue
+		seen[kind] = true
+		var def: Dictionary = ENEMIES[kind]
+		var traits: Array[String] = []
+		if def.get("boss", false):
+			traits.append("Boss")
+		if def.get("air", false):
+			traits.append("fliegt")
+		if def.get("armor", 0.0) > 0.0:
+			traits.append("Rüstung")
+		if def.get("regen", 0.0) > 0.0:
+			traits.append("heilt")
+		if def["speed"] >= 1.8:
+			traits.append("schnell")
+		elif def["speed"] <= 0.8:
+			traits.append("langsam")
+		if def.get("pack", 1) > 1:
+			traits.append("Rudel")
+		parts.append(def["name"] + (" (%s)" % ", ".join(traits) if not traits.is_empty() else ""))
+	return "%s · %d Gegner" % [", ".join(parts), list.size()]
+
+
 ## Lebenspunkte wachsen je Welle um 13 %.
 static func health_factor(number: int) -> float:
 	return pow(1.13, number - 1)

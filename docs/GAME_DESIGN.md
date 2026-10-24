@@ -42,6 +42,8 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 - Luftwellen 4, 9, 14, ...: Geister, ab Welle 14 auch Irrlichter. Sie folgen dem Grundweg der Karte (ohne
   Türme, gerade zwischen den Knicken) über alles hinweg, auch über die Kontrollpunkte, und werfen einen Schatten.
   Bauen ändert ihre Route nicht.
+- Solange Bauzeit ist, zeigt die obere Leiste die nächste Welle: Arten mit Besonderheiten (Boss, fliegt,
+  Rüstung, heilt, schnell, langsam, Rudel) und die Zahl der Gegner.
 - Bosse: Vampir in Welle 5, 15, 25, Totengräber in Welle 10, 20, 30, jeweils mit Begleitung.
 
 ## Bauen
@@ -117,7 +119,7 @@ Das Menü scrollt nicht: passt es nicht auf den Bildschirm, wird es als Ganzes v
 ## Bedienung auf Touch-Geräten
 
 Mit Touchscreen wird die Oberfläche so skaliert, dass die kurze Bildschirmseite etwa 560 Einheiten hat
-(am Rechner 720). Im Hochformat: zweite Zeile für die Knöpfe oben, Bauleiste in zwei Reihen, Menü einspaltig,
+(am Rechner 720). Im Hochformat: zweite Zeile für die Knöpfe oben, Bauleiste in zwei Reihen, Menü zwei mal zwei,
 die Kamera-Zoomgröße gilt dann für die Breite.
 
 Ziehen hält die Karte fest: der Punkt unter dem Finger bleibt unter dem Finger. Zwei Finger zoomen um ihre

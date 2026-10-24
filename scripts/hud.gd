@@ -30,6 +30,9 @@ var _timer_label := Label.new()
 var _next_button := Button.new()
 var _sound_button := Button.new()
 var _title := Label.new()
+var _top_bar := PanelContainer.new()
+var _preview := Label.new()
+var _preview_wave := -1
 var _top_row := HBoxContainer.new()
 var _top_row2 := HBoxContainer.new()
 var _top_buttons: Array[Button] = []
@@ -101,7 +104,6 @@ func _layout() -> void:
 		button.custom_minimum_size = Vector2(98, 104) if narrow else Vector2(122, 112)
 		var label: Label = button.find_children("*", "Label", true, false)[0]
 		label.add_theme_font_size_override("font_size", 13 if narrow else 15)
-	_toast.offset_top = 120 if narrow else 70
 
 
 static func make_theme() -> Theme:
@@ -138,7 +140,7 @@ static func make_theme() -> Theme:
 
 
 func _build_top(root: Control) -> void:
-	var bar := PanelContainer.new()
+	var bar := _top_bar
 	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	bar.offset_left = 8
 	bar.offset_right = -8
@@ -150,6 +152,12 @@ func _build_top(root: Control) -> void:
 	rows.add_child(_top_row)
 	_top_row2.add_theme_constant_override("separation", 10)
 	rows.add_child(_top_row2)
+	# Was als Nächstes kommt, solange Zeit zum Bauen ist.
+	_preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_preview.add_theme_font_size_override("font_size", 17)
+	_preview.add_theme_color_override("font_color", Color("#e8d9b0"))
+	_preview.visible = false
+	rows.add_child(_preview)
 	_gold_label.add_theme_color_override("font_color", GOLD)
 	_lives_label.add_theme_color_override("font_color", Color("#f08a7a"))
 	for label in [_gold_label, _lives_label, _wave_label, _timer_label]:
@@ -372,12 +380,17 @@ func update_stats(gold: int, lives: int, wave: int, countdown: float, speed: flo
 	_next_button.disabled = countdown <= 0.0
 	_next_button.text = "Nächste Welle  +%d" % (int(countdown) / 2) if countdown > 0.0 else "Welle läuft"
 	_speed_button.text = "Tempo %dx" % int(speed)
+	_preview.visible = countdown > 0.0
+	if _preview.visible and _preview_wave != wave + 1:
+		_preview_wave = wave + 1
+		_preview.text = "Als Nächstes, Welle %d: %s" % [_preview_wave, Defs.wave_preview(_preview_wave)]
 	for id: StringName in _build_buttons:
 		(_build_buttons[id] as Button).disabled = Defs.TOWERS[id]["cost"] > gold and selected_build != id
 	_bars.queue_redraw()
 
 
 func toast(text: String) -> void:
+	_toast.offset_top = _top_bar.get_rect().end.y + 8
 	_toast.text = text
 	_toast.modulate.a = 1.0
 	if _toast_tween != null:

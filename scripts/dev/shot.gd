@@ -90,9 +90,11 @@ func _hud(folder: String) -> void:
 	main.gold = 500
 	main.wave = 11
 	var tower := main.try_build(&"archer", Vector2i(8, 6))
-	main.select_tower(tower)
 	main.rig.position = tower.position
 	await _frames(4)
+	get_viewport().get_texture().get_image().save_png(folder + "/hud_bauen.png")
+	main.select_tower(tower)
+	await _frames(2)
 	get_viewport().get_texture().get_image().save_png(folder + "/hud.png")
 	main.set_paused(true)
 	await _frames(2)

@@ -34,6 +34,8 @@ var _timer_label := Label.new()
 var _next_button := Button.new()
 var _sound_button := Button.new()
 var _top_bar := PanelContainer.new()
+var _bottom_bar := PanelContainer.new()
+var _stat_labels: Array[Label] = []
 var _preview := Label.new()
 var _preview_wave := -1
 var _top_row := HBoxContainer.new()
@@ -99,9 +101,28 @@ func _ready() -> void:
 
 
 ## Breit: alles in einer Zeile oben, Bauleiste einreihig. Schmal (Hochformat): Knöpfe in zweiter Zeile,
-## Bauleiste in zwei Reihen.
+## Bauleiste in zwei Reihen. Kompakt (Handy quer): alles kleiner, die Bauleiste weicht der Turm-Karte.
 func _layout() -> void:
 	var narrow: bool = UiScale.narrow
+	var compact: bool = UiScale.compact
+	for label in _stat_labels:
+		label.add_theme_font_size_override("font_size", 18 if compact else 22)
+	for button in _top_buttons:
+		button.custom_minimum_size.y = 34 if compact else 44
+		button.add_theme_font_size_override("font_size", 16 if compact else 20)
+	_preview.add_theme_font_size_override("font_size", 14 if compact else 17)
+	_toast.add_theme_font_size_override("font_size", 20 if compact else 26)
+	for id: StringName in _ability_buttons:
+		var ability: Button = _ability_buttons[id]
+		ability.custom_minimum_size = Vector2(100, 38) if compact else Vector2(124, 52)
+		ability.add_theme_font_size_override("font_size", 14 if compact else 17)
+	_card.custom_minimum_size.x = 210 if compact else 250
+	_card_title.add_theme_font_size_override("font_size", 20 if compact else 26)
+	_card_text.add_theme_font_size_override("font_size", 15 if compact else 20)
+	_card_text.custom_minimum_size.x = 190 if compact else 230
+	for button: Button in _card.find_children("*", "Button", true, false):
+		button.add_theme_font_size_override("font_size", 15 if compact else 20)
+		button.custom_minimum_size.x = 190 if compact else 230
 	_top_row2.visible = narrow
 	_top_row.add_theme_constant_override("separation", 14 if narrow else 22)
 	for button in _top_buttons:
@@ -111,9 +132,11 @@ func _layout() -> void:
 	_build_grid.columns = ceili(count / 2.0) if narrow else count
 	for id: StringName in _build_buttons:
 		var button: Button = _build_buttons[id]
-		button.custom_minimum_size = Vector2(98, 104) if narrow else Vector2(122, 112)
+		button.custom_minimum_size = Vector2(98, 104) if narrow else Vector2(90, 78) if compact else Vector2(122, 112)
 		var label: Label = button.find_children("*", "Label", true, false)[0]
-		label.add_theme_font_size_override("font_size", 13 if narrow else 15)
+		label.add_theme_font_size_override("font_size", 13 if narrow or compact else 15)
+		var icon: TextureRect = button.find_children("*", "TextureRect", true, false)[0]
+		icon.custom_minimum_size = Vector2(60, 38) if compact else Vector2(80, 58)
 
 
 static func make_theme() -> Theme:
@@ -170,9 +193,9 @@ func _build_top(root: Control) -> void:
 	rows.add_child(_preview)
 	_gold_label.add_theme_color_override("font_color", GOLD)
 	_lives_label.add_theme_color_override("font_color", Color("#f08a7a"))
-	for label in [_gold_label, _lives_label, _wave_label, _timer_label]:
-		label.add_theme_font_size_override("font_size", 22)
+	for label: Label in [_gold_label, _lives_label, _wave_label, _timer_label]:
 		_top_row.add_child(label)
+		_stat_labels.append(label)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_top_row.add_child(spacer)
@@ -196,7 +219,7 @@ func _build_top(root: Control) -> void:
 
 
 func _build_bottom(root: Control) -> void:
-	var bar := PanelContainer.new()
+	var bar := _bottom_bar
 	bar.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -279,9 +302,7 @@ func _build_abilities(root: Control) -> void:
 	panel.add_child(box)
 	for id: StringName in Defs.ABILITY_ORDER:
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(124, 52)
 		button.tooltip_text = tr(Defs.ABILITIES[id]["info"])
-		button.add_theme_font_size_override("font_size", 17)
 		button.pressed.connect(func() -> void: ability_pressed.emit(id))
 		box.add_child(button)
 		_ability_buttons[id] = button
@@ -350,6 +371,7 @@ func _build_card(root: Control) -> void:
 
 
 func show_tower(tower: Tower, gold: int) -> void:
+	_bottom_bar.visible = tower == null or not UiScale.compact
 	if tower == null:
 		_card.visible = false
 		return

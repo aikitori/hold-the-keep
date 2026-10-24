@@ -1,15 +1,18 @@
 extends Node
 ## Größe der Oberfläche (Autoload "UiScale"): Auf Geräten mit Touchscreen wird alles so vergrößert, dass die
 ## kurze Bildschirmseite etwa 560 Einheiten hat (am Rechner 720). Im Hochformat ordnen HUD und Menü sich
-## schmal an (`narrow`).
+## schmal an (`narrow`). Quer auf niedrigen Bildschirmen (Handy) wird die Oberfläche kompakt (`compact`), damit
+## mehr Spielfeld frei bleibt.
 
 signal changed
 
-const TOUCH_SHORT_SIDE := 560.0
+const TOUCH_SHORT_SIDE := 600.0
 const DESKTOP_SHORT_SIDE := 720.0
 const NARROW_WIDTH := 900.0
+const COMPACT_HEIGHT := 650.0
 
 var narrow := false
+var compact := false
 ## Zum Ausprobieren am Rechner: tut so, als gäbe es einen Touchscreen.
 var force_touch := false
 
@@ -33,4 +36,5 @@ func apply() -> void:
 	if not is_equal_approx(window.content_scale_factor, factor):
 		window.content_scale_factor = factor
 	narrow = size.x / (base * factor) < NARROW_WIDTH
+	compact = not narrow and size.y / (base * factor) < COMPACT_HEIGHT
 	changed.emit()

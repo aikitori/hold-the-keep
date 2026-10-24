@@ -20,8 +20,9 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
   (Varianten derselben Figur über `tint`, `size`, `armor`, `regen`, `pack`), Wellen (`wave`, gemischt ab Welle 6).
 - `scripts/tower.gd`, `enemy.gd`, `projectile.gd`: Türme (Modell aus Teilen oder Figur), Gegner (Abschnitt für
   Abschnitt, Fliegende auf fester Flugroute), Geschosse (Pfeil, Bolzen, Fels im Bogen, Magie, Feuer, Kettenblitz).
-- `scripts/hud.gd`: Oberfläche im Code gebaut (Holz und Pergament, `Hud.make_theme()`), Turmbilder per
-  SubViewport, Lebensbalken als 2D-Overlay.
+- `scripts/hud.gd`: Oberfläche im Code gebaut (Holz mit Messingrand, Pergamentknöpfe, `Hud.make_theme()`),
+  Turmbilder per SubViewport, Turm-Karte neben dem Turm, Lebensbalken als 2D-Overlay. Symbole zeichnet
+  `scripts/glyph.gd` (`Glyph.make("coin")`) als Vektoren, weil die Schrift nur Latein-1 kann.
 - `scripts/sfx.gd` (Autoload `Sfx`): Klänge aus `assets/audio/`, `Sfx.play(id)` / `Sfx.play_at(id, pos)`,
   Lautstärke je Klang in `VOLUME`, Ton aus in `user://settings.cfg`. Klänge neu erzeugen: Auswahl in
   `tools/import_sfx.py` (`SOUNDS`), Rohdateien in `tools/sfx_src/` (mit `.gdignore`), `python3 tools/import_sfx.py`
@@ -68,12 +69,14 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
 
 ```bash
 godot --headless res://scenes/dev/logic_test.tscn   # Wege, Bauregeln, Karten, Ausbau, vier Wellen im Zeitraffer
-godot --headless res://scenes/dev/balance.tscn -- <karte> [easy|normal|hard]   # Bot spielt 30 Wellen (ca. 1,5 min)
+godot --headless res://scenes/dev/balance.tscn -- <karte> [easy|normal|hard] [turm,turm,...]   # Bot spielt 30 Wellen
+godot --headless res://scenes/dev/dps.tscn   # Schaden pro Sekunde und pro Gold je Turm
 godot res://scenes/dev/shot.tscn -- <Ordner> <menu|hud|icon|gegner|vier_felder|rundlauf|schlangenpfad|weites_feld>
 ```
 
 Ausgabe prüfen auf `LOGIC-TEST OK`, keine Zeilen mit `FAIL` oder `SCRIPT ERROR`. Die CI führt den Test aus.
 Der Balance-Bot baut nur neben den Weg (kein Labyrinth): auf Normal soll er knapp gewinnen oder spät verlieren.
+Einen Turm vergleichen: im dritten Argument einen Platz der Standardmischung tauschen (siehe `balance.gd`).
 
 ## Release
 

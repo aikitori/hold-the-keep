@@ -1,7 +1,9 @@
 class_name Hud
 extends CanvasLayer
-## Oberfläche im Stil einer Burg: Holz und Pergament. Oben Gold, Leben, Welle; unten die Bauleiste;
-## rechts die Turm-Karte zum Ausbauen und Verkaufen. Lebensbalken der Gegner zeichnet `_bars`.
+## Oberfläche im Stil einer Burg: Holz mit Messingrand und Pergamentknöpfe. Oben Gold, Leben, Welle und Zeit mit
+## Symbolen, rechts Pause, Tempo, nächste Welle und das Zahnrad (Ton, Musik, Menü). Unten die Bauleiste mit
+## Bildern und Preisen, darüber eine Infozeile. Die Turm-Karte steht neben dem gewählten Turm. Lebensbalken der
+## Gegner zeichnet `_bars`.
 
 signal build_selected(id: StringName)
 signal next_wave_pressed
@@ -23,7 +25,10 @@ const WOOD_LIGHT := Color("#5a4030")
 const PARCHMENT := Color("#efe2c0")
 const INK := Color("#2b1d12")
 const GOLD := Color("#f2c14e")
+const BRASS := Color("#a07a3a")
 const BLOOD := Color("#c0392b")
+## Tasten für die Bauleiste: 1 bis 9, dann 0.
+const BUILD_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
 
 var main: Node
 var selected_build: StringName = &""
@@ -31,22 +36,30 @@ var _gold_label := Label.new()
 var _lives_label := Label.new()
 var _wave_label := Label.new()
 var _timer_label := Label.new()
-var _next_button := Button.new()
-var _sound_button := Button.new()
-var _top_bar := PanelContainer.new()
-var _bottom_bar := PanelContainer.new()
+var _timer_glyph := Glyph.make("hourglass")
+var _stat_glyphs: Array[Glyph] = []
 var _stat_labels: Array[Label] = []
-var _preview := Label.new()
-var _preview_wave := -1
+var _top_bar := PanelContainer.new()
 var _top_row := HBoxContainer.new()
 var _top_row2 := HBoxContainer.new()
 var _top_buttons: Array[Button] = []
+var _pause_button: Button
+var _speed_button: Button
+var _next_button: Button
+var _gear_button: Button
+var _gear_panel := PanelContainer.new()
+var _sound_button := Button.new()
+var _music_button := Button.new()
+var _preview := Label.new()
+var _preview_wave := -1
+var _bottom_bar := PanelContainer.new()
+var _build_info := Label.new()
 var _build_grid := GridContainer.new()
-var _speed_button := Button.new()
 var _build_buttons: Dictionary = {}
 var _card := PanelContainer.new()
 var _card_title := Label.new()
 var _card_text := Label.new()
+var _card_buttons := HBoxContainer.new()
 var _upgrade_button := Button.new()
 var _sell_button := Button.new()
 var _target_button := Button.new()
@@ -55,7 +68,6 @@ var _spec_ids: Array[StringName] = [&"", &""]
 var _toast := Label.new()
 var _toast_tween: Tween
 var _pause_panel := PanelContainer.new()
-var _pause_button := Button.new()
 var _end_panel := PanelContainer.new()
 var _end_title := Label.new()
 var _end_text := Label.new()
@@ -79,6 +91,7 @@ func _ready() -> void:
 	root.theme = make_theme()
 	add_child(root)
 	_build_top(root)
+	_build_gear(root)
 	_build_bottom(root)
 	_build_card(root)
 	_build_abilities(root)
@@ -89,7 +102,6 @@ func _ready() -> void:
 	_toast.offset_right = -16
 	_toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_toast.add_theme_font_size_override("font_size", 26)
 	_toast.add_theme_color_override("font_color", PARCHMENT)
 	_toast.add_theme_color_override("font_outline_color", INK)
 	_toast.add_theme_constant_override("outline_size", 8)
@@ -115,24 +127,27 @@ func _layout() -> void:
 	_root.offset_bottom = -UiScale.safe.w
 	for label in _stat_labels:
 		label.add_theme_font_size_override("font_size", 18 if compact else 22)
+	for glyph in _stat_glyphs:
+		glyph.custom_minimum_size = Vector2.ONE * (18.0 if compact else 22.0)
 	for button in _top_buttons:
-		button.custom_minimum_size.y = 34 if compact else 44
-		button.add_theme_font_size_override("font_size", 16 if compact else 20)
-	_preview.add_theme_font_size_override("font_size", 14 if compact else 17)
+		button.custom_minimum_size.y = 34 if compact else 42
+		button.add_theme_font_size_override("font_size", 16 if compact else 19)
+		var glyph: Glyph = button.get_meta("glyph")
+		glyph.custom_minimum_size = Vector2.ONE * (16.0 if compact else 20.0)
+	_preview.add_theme_font_size_override("font_size", 14 if compact else 16)
 	_toast.add_theme_font_size_override("font_size", 20 if compact else 26)
 	for id: StringName in _ability_buttons:
 		var ability: Button = _ability_buttons[id]
-		ability.custom_minimum_size = Vector2(100, 38) if compact else Vector2(124, 52)
+		ability.custom_minimum_size = Vector2(100, 38) if compact else Vector2(120, 48)
 		ability.add_theme_font_size_override("font_size", 14 if compact else 17)
-	_card.custom_minimum_size.x = 210 if compact else 250
-	_card_title.add_theme_font_size_override("font_size", 20 if compact else 26)
-	_card_text.add_theme_font_size_override("font_size", 15 if compact else 20)
-	_card_text.custom_minimum_size.x = 190 if compact else 230
+	_card.custom_minimum_size.x = 200 if compact else 240
+	_card_title.add_theme_font_size_override("font_size", 18 if compact else 22)
+	_card_text.add_theme_font_size_override("font_size", 14 if compact else 17)
 	for button: Button in _card.find_children("*", "Button", true, false):
-		button.add_theme_font_size_override("font_size", 15 if compact else 20)
-		button.custom_minimum_size.x = 190 if compact else 230
+		button.add_theme_font_size_override("font_size", 14 if compact else 17)
+	_build_info.add_theme_font_size_override("font_size", 14 if compact else 16)
 	_top_row2.visible = narrow
-	_top_row.add_theme_constant_override("separation", 14 if narrow else 22)
+	_top_row.add_theme_constant_override("separation", 12 if narrow else 18)
 	for button in _top_buttons:
 		button.reparent(_top_row2 if narrow else _top_row)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL if narrow else Control.SIZE_FILL
@@ -140,33 +155,36 @@ func _layout() -> void:
 	_build_grid.columns = ceili(count / 2.0) if narrow else count
 	for id: StringName in _build_buttons:
 		var button: Button = _build_buttons[id]
-		button.custom_minimum_size = Vector2(98, 104) if narrow else Vector2(90, 78) if compact else Vector2(122, 112)
-		var label: Label = button.find_children("*", "Label", true, false)[0]
-		label.add_theme_font_size_override("font_size", 13 if narrow or compact else 15)
-		var icon: TextureRect = button.find_children("*", "TextureRect", true, false)[0]
-		icon.custom_minimum_size = Vector2(60, 38) if compact else Vector2(80, 58)
+		button.custom_minimum_size = Vector2(70, 74) if narrow or compact else Vector2(84, 88)
+		var icon: TextureRect = button.get_meta("icon")
+		icon.custom_minimum_size = Vector2(58, 42) if narrow or compact else Vector2(72, 54)
+		(button.get_meta("cost") as Label).add_theme_font_size_override("font_size", 14 if narrow or compact else 16)
 
 
+## Holz mit Messingrand, Pergamentknöpfe mit Kante unten (gedrückt: Kante oben, wie eingedrückt).
 static func make_theme() -> Theme:
 	var theme := Theme.new()
 	theme.default_font = FONT
 	theme.default_font_size = 20
 	var panel := StyleBoxFlat.new()
-	panel.bg_color = WOOD
-	panel.border_color = Color("#1e140d")
-	panel.set_border_width_all(3)
-	panel.set_corner_radius_all(6)
-	panel.set_content_margin_all(10)
-	panel.shadow_color = Color(0, 0, 0, 0.35)
-	panel.shadow_size = 6
+	panel.bg_color = Color(WOOD, 0.95)
+	panel.border_color = BRASS
+	panel.set_border_width_all(2)
+	panel.set_corner_radius_all(8)
+	panel.set_content_margin_all(9)
+	panel.shadow_color = Color(0, 0, 0, 0.4)
+	panel.shadow_size = 8
+	panel.shadow_offset = Vector2(0, 3)
 	theme.set_stylebox("panel", "PanelContainer", panel)
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		var box := StyleBoxFlat.new()
-		box.bg_color = {"normal": PARCHMENT, "hover": Color("#fff3d6"), "pressed": GOLD,
+		box.bg_color = {"normal": PARCHMENT, "hover": Color("#fff6de"), "pressed": GOLD,
 				"disabled": Color("#8d7f66"), "focus": PARCHMENT}[state]
 		box.border_color = Color("#7a5a2e") if state != "pressed" else Color("#8a5a10")
 		box.set_border_width_all(2)
-		box.set_corner_radius_all(4)
+		box.border_width_bottom = 2 if state == "pressed" else 4
+		box.border_width_top = 4 if state == "pressed" else 2
+		box.set_corner_radius_all(6)
 		box.set_content_margin_all(6)
 		if state == "focus":
 			box.draw_center = false
@@ -175,9 +193,53 @@ static func make_theme() -> Theme:
 	theme.set_color("font_color", "Button", INK)
 	theme.set_color("font_hover_color", "Button", INK)
 	theme.set_color("font_pressed_color", "Button", INK)
+	theme.set_color("font_hover_pressed_color", "Button", INK)
 	theme.set_color("font_disabled_color", "Button", Color("#3f362b"))
 	theme.set_color("font_color", "Label", PARCHMENT)
 	return theme
+
+
+## Knopf mit Symbol und optionalem Text, Größe aus dem Inhalt.
+func _icon_button(kind: String, text := "") -> Button:
+	var button := Button.new()
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.add_theme_constant_override("separation", 6)
+	button.add_child(row)
+	var glyph := Glyph.make(kind, 20.0, INK)
+	row.add_child(glyph)
+	var label := Label.new()
+	label.text = text
+	label.visible = text != ""
+	label.add_theme_color_override("font_color", INK)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(label)
+	button.set_meta("glyph", glyph)
+	button.set_meta("label", label)
+	# Breite folgt dem Inhalt (Kinder eines Knopfs zählen nicht von selbst mit).
+	row.minimum_size_changed.connect(func() -> void: button.custom_minimum_size.x = row.get_combined_minimum_size().x + 18)
+	return button
+
+
+func _set_button_text(button: Button, text: String) -> void:
+	var label: Label = button.get_meta("label")
+	label.text = text
+	label.visible = text != ""
+
+
+func _stat(kind: String, label: Label, color: Color, glyph: Glyph = null) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	if glyph == null:
+		glyph = Glyph.make(kind, 22.0)
+	row.add_child(glyph)
+	_stat_glyphs.append(glyph)
+	label.add_theme_color_override("font_color", color)
+	row.add_child(label)
+	_stat_labels.append(label)
+	return row
 
 
 func _build_top(root: Control) -> void:
@@ -188,42 +250,64 @@ func _build_top(root: Control) -> void:
 	bar.offset_top = 8
 	root.add_child(bar)
 	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 4)
 	bar.add_child(rows)
-	_top_row.add_theme_constant_override("separation", 22)
 	rows.add_child(_top_row)
-	_top_row2.add_theme_constant_override("separation", 10)
+	_top_row2.add_theme_constant_override("separation", 8)
 	rows.add_child(_top_row2)
 	# Was als Nächstes kommt, solange Zeit zum Bauen ist.
 	_preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_preview.add_theme_font_size_override("font_size", 17)
-	_preview.add_theme_color_override("font_color", Color("#e8d9b0"))
+	_preview.add_theme_color_override("font_color", Color("#d9c9a0"))
 	_preview.visible = false
 	rows.add_child(_preview)
-	_gold_label.add_theme_color_override("font_color", GOLD)
-	_lives_label.add_theme_color_override("font_color", Color("#f08a7a"))
-	for label: Label in [_gold_label, _lives_label, _wave_label, _timer_label]:
-		_top_row.add_child(label)
-		_stat_labels.append(label)
+	_top_row.add_child(_stat("coin", _gold_label, GOLD))
+	_top_row.add_child(_stat("heart", _lives_label, Color("#f08a7a")))
+	_top_row.add_child(_stat("skull", _wave_label, PARCHMENT))
+	_top_row.add_child(_stat("hourglass", _timer_label, Color("#d9c9a0"), _timer_glyph))
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_top_row.add_child(spacer)
-	var menu := Button.new()
-	menu.text = tr("Menü")
-	menu.pressed.connect(func() -> void: menu_pressed.emit())
+	_pause_button = _icon_button("pause")
+	_pause_button.tooltip_text = tr("Pause") + " (P)"
+	_pause_button.pressed.connect(func() -> void: pause_pressed.emit())
+	_speed_button = _icon_button("fast", "1x")
+	_speed_button.pressed.connect(func() -> void: speed_pressed.emit())
+	_next_button = _icon_button("play", tr("Nächste Welle"))
+	_next_button.pressed.connect(func() -> void: next_wave_pressed.emit())
+	_gear_button = _icon_button("gear")
+	(_gear_button.get_meta("glyph") as Glyph).color = INK
+	_gear_button.pressed.connect(func() -> void: _gear_panel.visible = not _gear_panel.visible)
+	_top_buttons = [_pause_button, _speed_button, _next_button, _gear_button]
+	for button: Button in _top_buttons:
+		_top_row.add_child(button)
+
+
+## Zahnrad-Menü: Ton, Musik, zurück ins Menü. Klappt unter der oberen Leiste rechts auf.
+func _build_gear(root: Control) -> void:
+	_gear_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_gear_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_gear_panel.offset_right = -8
+	_gear_panel.visible = false
+	root.add_child(_gear_panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	_gear_panel.add_child(box)
+	var show_sound := func() -> void: _sound_button.text = tr("Ton aus") if Sfx.muted else tr("Ton an")
+	var show_music := func() -> void: _music_button.text = tr("Musik: an") if Sfx.music_on else tr("Musik: aus")
+	show_sound.call()
+	show_music.call()
 	_sound_button.pressed.connect(func() -> void:
 		Sfx.set_muted(not Sfx.muted)
-		_sound_button.text = tr("Ton aus") if Sfx.muted else tr("Ton an"))
-	_sound_button.text = tr("Ton aus") if Sfx.muted else tr("Ton an")
-	_speed_button.text = tr("Tempo %dx") % 1
-	_speed_button.pressed.connect(func() -> void: speed_pressed.emit())
-	_pause_button.text = tr("Pause")
-	_pause_button.pressed.connect(func() -> void: pause_pressed.emit())
-	_next_button.text = tr("Nächste Welle")
-	_next_button.pressed.connect(func() -> void: next_wave_pressed.emit())
-	_top_buttons = [menu, _sound_button, _pause_button, _speed_button, _next_button]
-	for button: Button in _top_buttons:
-		button.custom_minimum_size.y = 44
-		_top_row.add_child(button)
+		show_sound.call())
+	_music_button.pressed.connect(func() -> void:
+		Sfx.set_music_on(not Sfx.music_on)
+		show_music.call())
+	var menu := Button.new()
+	menu.text = tr("Zum Menü")
+	menu.pressed.connect(func() -> void: menu_pressed.emit())
+	for button: Button in [_sound_button, _music_button, menu]:
+		button.custom_minimum_size = Vector2(180, 42)
+		box.add_child(button)
 
 
 func _build_bottom(root: Control) -> void:
@@ -233,45 +317,68 @@ func _build_bottom(root: Control) -> void:
 	bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	bar.offset_bottom = -8
 	root.add_child(bar)
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 6)
+	bar.add_child(rows)
+	# Name und Beschreibung des gewählten (oder überfahrenen) Turms.
+	_build_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_build_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_build_info.custom_minimum_size.x = 300
+	_build_info.visible = false
+	rows.add_child(_build_info)
 	_build_grid.columns = Defs.BUILD_ORDER.size()
-	_build_grid.add_theme_constant_override("h_separation", 8)
-	_build_grid.add_theme_constant_override("v_separation", 8)
-	bar.add_child(_build_grid)
+	_build_grid.add_theme_constant_override("h_separation", 6)
+	_build_grid.add_theme_constant_override("v_separation", 6)
+	rows.add_child(_build_grid)
 	for id: StringName in Defs.BUILD_ORDER:
 		var def: Dictionary = Defs.TOWERS[id]
 		var button := Button.new()
 		button.toggle_mode = true
-		button.custom_minimum_size = Vector2(122, 108)
-		button.tooltip_text = tr(def["info"]) + "\n" + tr("Taste %s") % str(_build_buttons.size() + 1)
+		var key: int = Defs.BUILD_ORDER.find(id)
+		button.tooltip_text = tr(def["info"]) + ("\n" + tr("Taste %s") % OS.get_keycode_string(BUILD_KEYS[key]) if key < BUILD_KEYS.size() else "")
 		var box := VBoxContainer.new()
 		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.set_anchors_preset(Control.PRESET_FULL_RECT)
 		box.add_theme_constant_override("separation", 0)
 		button.add_child(box)
 		var icon := TextureRect.new()
-		icon.custom_minimum_size = Vector2(80, 58)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		icon.texture = _icon(id)
 		box.add_child(icon)
-		var name_label := Label.new()
-		name_label.text = tr("%s\n%d Gold") % [tr(def["name"]), def["cost"]]
-		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_label.add_theme_font_size_override("font_size", 15)
-		name_label.add_theme_constant_override("line_spacing", -2)
-		name_label.add_theme_color_override("font_color", INK)
-		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		box.add_child(name_label)
+		var price := HBoxContainer.new()
+		price.alignment = BoxContainer.ALIGNMENT_CENTER
+		price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		price.add_theme_constant_override("separation", 3)
+		price.add_child(Glyph.make("coin", 14.0))
+		var cost := Label.new()
+		cost.text = str(def["cost"])
+		cost.add_theme_color_override("font_color", INK)
+		cost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		price.add_child(cost)
+		box.add_child(price)
+		button.set_meta("icon", icon)
+		button.set_meta("cost", cost)
 		button.toggled.connect(func(on: bool) -> void: _on_build_toggled(id, on))
+		button.mouse_entered.connect(func() -> void: _show_build_info(id))
+		button.mouse_exited.connect(func() -> void: _show_build_info(selected_build))
 		_build_grid.add_child(button)
 		_build_buttons[id] = button
+
+
+func _show_build_info(id: StringName) -> void:
+	_build_info.visible = id != &""
+	if id != &"":
+		var def: Dictionary = Defs.TOWERS[id]
+		_build_info.text = "%s  ·  %s" % [tr(def["name"]), tr(def["info"])]
 
 
 ## Kleines Bild des Turms, gerendert in einem eigenen Viewport mit derselben Schrägsicht wie das Spiel.
 func _icon(id: StringName) -> Texture2D:
 	var viewport := SubViewport.new()
-	viewport.size = Vector2i(220, 132)
+	viewport.size = Vector2i(176, 132)
 	viewport.own_world_3d = true
 	viewport.transparent_bg = true
 	viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
@@ -284,7 +391,7 @@ func _icon(id: StringName) -> Texture2D:
 	cam.size = maxf(1.6, height + 0.6)
 	viewport.add_child(cam)
 	var center := Vector3(0, height * 0.5, 0)
-	cam.look_at_from_position(center + Vector3(1, 1, 1).normalized() * 10.0, center, Vector3.UP)
+	cam.look_at_from_position(center + Vector3(1, 0.8, 1).normalized() * 10.0, center, Vector3.UP)
 	var light := DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-50, 30, 0)
 	viewport.add_child(light)
@@ -306,7 +413,7 @@ func _build_abilities(root: Control) -> void:
 	panel.offset_left = 8
 	root.add_child(panel)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	box.add_theme_constant_override("separation", 6)
 	panel.add_child(box)
 	for id: StringName in Defs.ABILITY_ORDER:
 		var button := Button.new()
@@ -333,6 +440,7 @@ func _on_build_toggled(id: StringName, on: bool) -> void:
 		selected_build = id
 	elif selected_build == id:
 		selected_build = &""
+	_show_build_info(selected_build)
 	build_selected.emit(selected_build)
 
 
@@ -340,42 +448,47 @@ func clear_build() -> void:
 	for id: StringName in _build_buttons:
 		(_build_buttons[id] as Button).set_pressed_no_signal(false)
 	selected_build = &""
+	_show_build_info(&"")
 
 
+## Turm-Karte: Titel mit Schließen-Kreuz, knappe Werte, Ausbauen und Abreißen nebeneinander, Zielwahl,
+## Spezialisierungen. Steht neben dem Turm (siehe _place_card).
 func _build_card(root: Control) -> void:
-	_card.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
-	_card.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	_card.grow_vertical = Control.GROW_DIRECTION_BOTH
-	_card.offset_right = -10
-	_card.custom_minimum_size = Vector2(250, 0)
 	_card.visible = false
 	root.add_child(_card)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	box.add_theme_constant_override("separation", 6)
 	_card.add_child(box)
-	_card_title.add_theme_font_size_override("font_size", 26)
+	var head := HBoxContainer.new()
+	box.add_child(head)
 	_card_title.add_theme_color_override("font_color", GOLD)
-	box.add_child(_card_title)
+	_card_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_card_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	head.add_child(_card_title)
+	var close := _icon_button("close")
+	close.custom_minimum_size = Vector2(34, 34)
+	(close.get_meta("glyph") as Glyph).custom_minimum_size = Vector2(14, 14)
+	close.pressed.connect(func() -> void: deselect_pressed.emit())
+	head.add_child(close)
 	_card_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_card_text.custom_minimum_size = Vector2(230, 0)
+	_card_text.add_theme_color_override("font_color", Color("#e8d9b0"))
 	box.add_child(_card_text)
+	_card_buttons.add_theme_constant_override("separation", 6)
+	box.add_child(_card_buttons)
+	for button: Button in [_upgrade_button, _sell_button]:
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.custom_minimum_size.y = 40
+		_card_buttons.add_child(button)
+	_upgrade_button.pressed.connect(func() -> void: upgrade_pressed.emit())
+	_sell_button.pressed.connect(func() -> void: sell_pressed.emit())
 	_target_button.pressed.connect(func() -> void: target_pressed.emit())
 	box.add_child(_target_button)
-	_upgrade_button.pressed.connect(func() -> void: upgrade_pressed.emit())
-	box.add_child(_upgrade_button)
 	for i in 2:
 		var spec := Button.new()
 		spec.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		spec.custom_minimum_size = Vector2(230, 0)
 		spec.pressed.connect(func() -> void: spec_pressed.emit(_spec_ids[i]))
 		box.add_child(spec)
 		_spec_buttons.append(spec)
-	_sell_button.pressed.connect(func() -> void: sell_pressed.emit())
-	box.add_child(_sell_button)
-	var close := Button.new()
-	close.text = tr("Schließen")
-	close.pressed.connect(func() -> void: deselect_pressed.emit())
-	box.add_child(close)
 
 
 func show_tower(tower: Tower, gold: int) -> void:
@@ -386,13 +499,17 @@ func show_tower(tower: Tower, gold: int) -> void:
 	var def: Dictionary = Defs.TOWERS[tower.id]
 	_card.visible = true
 	_card_title.text = tr("%s · Stufe %d") % [tr(tower.title()), tower.level] if tower.id != &"wall" else tr(def["name"])
-	var lines: Array[String] = [tr(def["info"] if tower.spec_id == &"" else Defs.spec(tower.id, tower.spec_id)["info"])]
+	var lines: Array[String] = []
 	if def["damage"] > 0:
 		lines.append(tr("Schaden %d · Reichweite %.1f") % [roundi(tower.damage()), tower.reach()])
 		lines.append(tr("Schüsse pro Sekunde %.1f") % (1.0 / tower.cooldown()))
 		lines.append(tr({"ground": "Trifft Bodengegner", "air": "Trifft nur Fliegende", "both": "Trifft Boden und Luft"}[tower.targets()]))
 		if tower.kills > 0:
 			lines.append(tr("Besiegt: %d") % tower.kills)
+	elif not def.has("support") and not def.has("income"):
+		lines.append(tr(def["info"]))
+	if tower.spec_id != &"":
+		lines.append(tr(Defs.spec(tower.id, tower.spec_id)["info"]))
 	if def.has("support"):
 		lines.append(tr("Türme im Umkreis: +%d %% Schaden") % roundi(Defs.tower_support(tower.id, tower.level) * 100))
 		if tower.stat("haste", 0.0) > 0.0:
@@ -420,6 +537,26 @@ func show_tower(tower: Tower, gold: int) -> void:
 	_upgrade_button.text = tr("Ausbauen  %d Gold") % cost
 	_upgrade_button.disabled = cost > gold
 	_sell_button.text = tr("Abreißen  +%d Gold") % tower.sell_value()
+	_place_card(tower)
+
+
+## Karte neben den Turm: rechts davon, sonst links; senkrecht zwischen den Leisten gehalten.
+func _place_card(tower: Tower) -> void:
+	if main == null:
+		return
+	var camera: Camera3D = main.rig.camera
+	var spot := camera.unproject_position(tower.global_position + Vector3(0, tower.height() * 0.5, 0)) - _root.global_position
+	var card := _card.get_combined_minimum_size()
+	var area := _root.size
+	var gap := 44.0
+	var x := spot.x + gap
+	if x + card.x > area.x - 8.0:
+		x = spot.x - gap - card.x
+	var top := _top_bar.get_rect().end.y + 8.0
+	var bottom := (_bottom_bar.get_rect().position.y if _bottom_bar.visible else area.y) - 8.0
+	var y := clampf(spot.y - card.y / 2.0, top, maxf(top, bottom - card.y))
+	_card.position = Vector2(clampf(x, 8.0, maxf(8.0, area.x - card.x - 8.0)), y)
+	_card.size = card
 
 
 func _build_end(root: Control) -> void:
@@ -476,16 +613,17 @@ func _build_pause(root: Control) -> void:
 
 func show_pause(on: bool) -> void:
 	_pause_panel.visible = on
-	_pause_button.text = tr("Weiter") if on else tr("Pause")
+	_gear_panel.visible = false
+	(_pause_button.get_meta("glyph") as Glyph).set_kind("play" if on else "pause")
 
 
-## Tasten am Rechner: 1-9 bauen, Q W E Fähigkeiten, U ausbauen, Entf/X abreißen, T Zielwahl,
+## Tasten am Rechner: 1-9 und 0 bauen, Q W E Fähigkeiten, U ausbauen, Entf/X abreißen, T Zielwahl,
 ## Leertaste nächste Welle, P Pause (Esc bricht ab, das erledigt Main).
 func _unhandled_key_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if not key.pressed or key.echo:
 		return
-	var number := key.keycode - KEY_1
+	var number := BUILD_KEYS.find(key.keycode)
 	if number >= 0 and number < Defs.BUILD_ORDER.size():
 		var button: Button = _build_buttons[Defs.BUILD_ORDER[number]]
 		if not button.disabled or button.button_pressed:
@@ -509,6 +647,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 func show_end(won: bool, wave: int, stats := "") -> void:
 	_end_panel.visible = true
+	_gear_panel.visible = false
 	_end_title.text = tr("Die Burg hält!") if won else tr("Die Burg ist gefallen")
 	_end_text.text = tr("Alle %d Wellen abgewehrt.") % Defs.WAVES if won else tr("Bis Welle %d durchgehalten.") % wave
 	if stats != "":
@@ -521,20 +660,23 @@ func hide_end() -> void:
 
 
 func update_stats(gold: int, lives: int, wave: int, countdown: float, speed: float, endless := false, remaining := 0) -> void:
-	_gold_label.text = tr("Gold %d") % gold
-	_lives_label.text = tr("Leben %d") % lives
-	_wave_label.text = tr("Welle %d (endlos)") % wave if endless else tr("Welle %d / %d") % [wave, Defs.WAVES]
-	_timer_label.text = tr("nächste in %d s") % ceili(countdown) if countdown > 0.0 else tr("noch %d Gegner") % remaining
+	_gold_label.text = str(gold)
+	_lives_label.text = str(lives)
+	_wave_label.text = tr("%d (endlos)") % wave if endless else "%d / %d" % [wave, Defs.WAVES]
+	_timer_glyph.set_kind("hourglass" if countdown > 0.0 else "skull")
+	_timer_label.text = "%d s" % ceili(countdown) if countdown > 0.0 else tr("noch %d") % remaining
 	_next_button.disabled = countdown <= 0.0
-	_next_button.text = tr("Nächste Welle  +%d") % (int(countdown) / 2) if countdown > 0.0 else tr("Welle läuft")
-	_speed_button.text = tr("Tempo %dx") % int(speed)
+	_set_button_text(_next_button, tr("Welle  +%d") % (int(countdown) / 2) if countdown > 0.0 else tr("Welle läuft"))
+	_set_button_text(_speed_button, "%dx" % int(speed))
 	_preview.visible = countdown > 0.0
 	if _preview.visible and _preview_wave != wave + 1:
 		_preview_wave = wave + 1
 		_preview.text = tr("Als Nächstes, Welle %d: %s") % [_preview_wave, Defs.wave_preview(_preview_wave)]
 	for id: StringName in _build_buttons:
 		(_build_buttons[id] as Button).disabled = Defs.TOWERS[id]["cost"] > gold and selected_build != id
-	_toast.offset_top = _top_bar.get_rect().end.y + 8  # die Leiste wächst mit der Wellenvorschau
+	var top := _top_bar.get_rect().end.y
+	_toast.offset_top = top + 8  # die Leiste wächst mit der Wellenvorschau
+	_gear_panel.offset_top = top + 6
 	_bars.queue_redraw()
 
 
@@ -550,7 +692,7 @@ func toast(text: String) -> void:
 
 ## Liegt die Bildschirmstelle auf einem Bedienelement? Dann ist ein Tipp nicht für das Spielfeld.
 func blocks(point: Vector2) -> bool:
-	for control: Control in [_card, _end_panel, _pause_panel]:
+	for control: Control in [_card, _end_panel, _pause_panel, _gear_panel]:
 		if control.visible and control.get_global_rect().has_point(point):
 			return true
 	for node in get_children():

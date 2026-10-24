@@ -77,10 +77,14 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 | Schütze | 10 | Boden + Luft | Figur mit Bogen |
 | Speerträger | 20 | Boden | Figur, Nahkampf, sofortiger Treffer |
 | Bogenturm | 15 | Boden + Luft | schnelle Pfeile |
+| Bombarde | 30 | Boden | Kanonenkugel, Flächenschaden 1,0, flacher Bogen |
+| Giftküche | 30 | Boden + Luft | Gift 12/s je Stapel, bis 3 Stapel, 4 s, durch Rüstung, hemmt Heilung |
 | Balliste | 35 | Boden | weit, stark, ein Ziel |
 | Katapult | 45 | Boden | Fels im Bogen, Flächenschaden |
 | Magierturm | 40 | Boden + Luft | verlangsamt |
 | Himmelswacht | 30 | nur Luft | Feuerpfeile |
+| Kriegsbanner | 40 | – | Türme im Umkreis 2,5: +25 % Schaden (+10 je Stufe) |
+| Zollhaus | 50 | – | nach jeder besiegten Welle 6 / 10 / 15 Gold je Stufe |
 | Trebuchet | 90 | Boden | sehr weit, großer Einschlag |
 
 Zielwahl je Turm (Knopf auf der Turm-Karte): Vorderster (kürzester Restweg zur Burg, Standard), Stärkster,
@@ -102,6 +106,10 @@ Schwächster, bei Türmen für Boden und Luft auch Flieger zuerst. Bei Gleichsta
 | Magierturm | Frostmagier (starkes Verlangsamen) | Blitzmagier (Kette über 4 Gegner) |
 | Himmelswacht | Sturmturm (3 Ziele) | Adlerhorst (weiter, stärker) |
 | Trebuchet | Verheerung (riesiger Einschlag) | Präzision (weiter, dreifacher Schaden) |
+| Bombarde | Feldschlange (weiter, stärker) | Kartätsche (breite Streuung, schneller) |
+| Giftküche | Seuchenkessel (Gift im Umkreis) | Schwarzer Tod (stärker, bis sechsfach) |
+| Kriegsbanner | Feldherr (auch +20 % Tempo) | Großes Banner (größerer Umkreis) |
+| Zollhaus | Schatzkammer (doppelte Einnahmen) | Kopfgeld (+1 Gold je Gegner im Umkreis 3) |
 
 ## Karten
 
@@ -144,13 +152,19 @@ Links am Rand, jede mit Abklingzeit (zu Beginn bereit, läuft nur, solange gespi
 
 ## Anzeige im Spiel
 
+- Obere Leiste: Gold, Leben, Welle und Bauzeit (Sanduhr) oder Restgegner (Schädel) mit gezeichneten Symbolen,
+  rechts Pause, Tempo, nächste Welle und das Zahnrad (Ton, Musik, zurück ins Menü).
+- Bauleiste: Bild und Preis je Turm, Name und Beschreibung in einer Infozeile darüber (beim Wählen oder Überfahren).
+- Die Turm-Karte steht neben dem gewählten Turm: Werte, Ausbauen und Abreißen nebeneinander, Zielwahl,
+  Spezialisierungen, Kreuz zum Schließen.
+
 - Während einer Welle zeigt die obere Leiste, wie viele Gegner noch kommen oder unterwegs sind.
 - Jeder Turm zählt seine Siege (letzter Treffer, auch durch Brand). Am Ende: besiegte Gegner, verdientes Gold,
   gebaute Türme und der Turm mit den meisten Siegen.
 
 ## Tasten am Rechner
 
-1 bis 9 bauen (nochmal drücken wählt ab), Q W E Fähigkeiten, U ausbauen, Entf oder X abreißen, T Zielwahl,
+1 bis 9 und 0 bauen (nochmal drücken wählt ab), Q W E Fähigkeiten, U ausbauen, Entf oder X abreißen, T Zielwahl,
 Leertaste nächste Welle, P Pause, Esc oder rechte Maustaste bricht ab (gibt es nichts abzubrechen, öffnet Esc
 die Pause, in der Pause geht es mit Esc weiter). Android-Zurück: im Spiel wie Esc, im Menü beendet es die App.
 

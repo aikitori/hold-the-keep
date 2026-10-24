@@ -56,13 +56,13 @@ const TOWERS := {
 	&"bombard": {
 		"name": "Bombarde", "cost": 30, "info": "Kanonenkugeln mit Flächenschaden, schneller als das Katapult. Nur Boden.",
 		"parts": ["castle/tower-base"], "barrel": true, "level_parts": ["castle/tower-hexagon-mid"],
-		"damage": 14, "range": 3.8, "cooldown": 1.3, "projectile": "cannonball", "speed": 11.0, "splash": 0.9,
+		"damage": 20, "range": 3.8, "cooldown": 1.2, "projectile": "cannonball", "speed": 11.0, "splash": 1.0,
 		"targets": "ground",
 	},
 	&"poison": {
-		"name": "Giftküche", "cost": 35, "info": "Gift stapelt sich, geht durch Rüstung und hemmt Heilung. Boden und Luft.",
+		"name": "Giftküche", "cost": 30, "info": "Gift stapelt sich, geht durch Rüstung und hemmt Heilung. Boden und Luft.",
 		"parts": ["castle/tower-base"], "top": "graveyard/fire-basket", "level_parts": ["castle/tower-hexagon-mid"],
-		"damage": 3, "range": 3.2, "cooldown": 0.8, "projectile": "poison", "speed": 9.0, "poison": 5.0, "stacks": 3,
+		"damage": 5, "range": 3.2, "cooldown": 0.6, "projectile": "poison", "speed": 9.0, "poison": 12.0, "stacks": 3,
 		"targets": "both",
 	},
 	&"banner": {
@@ -161,7 +161,7 @@ const SPECS := {
 	],
 	&"poison": [
 		{"id": &"plague_pot", "name": "Seuchenkessel", "info": "Das Gift trifft alle am Einschlag.", "cost": 55, "splash": 1.2},
-		{"id": &"black_death", "name": "Schwarzer Tod", "info": "Viel stärkeres Gift, stapelt bis sechsfach.", "cost": 60, "poison": 9.0, "stacks": 6},
+		{"id": &"black_death", "name": "Schwarzer Tod", "info": "Viel stärkeres Gift, stapelt bis sechsfach.", "cost": 60, "poison": 20.0, "stacks": 6},
 	],
 	&"banner": [
 		{"id": &"warlord_banner", "name": "Feldherr", "info": "Türme im Umkreis schießen auch schneller.", "cost": 60, "haste": 0.2},

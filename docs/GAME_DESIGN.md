@@ -189,7 +189,9 @@ umschaltbar. Die deutschen Texte im Code sind die Schlüssel, die englischen ste
 
 Mit Touchscreen wird die Oberfläche so skaliert, dass die kurze Bildschirmseite etwa 600 Einheiten hat
 (am Rechner 720). Quer auf niedrigen Bildschirmen (unter 650 Einheiten Höhe, also Handys) ist die Oberfläche
-kompakt: kleinere Leisten, Knöpfe und Turm-Karte, und die Bauleiste weicht, solange ein Turm gewählt ist. Im Hochformat: zweite Zeile für die Knöpfe oben, Bauleiste in zwei Reihen, Menü zwei mal zwei,
+kompakt: kleinere Leisten, Knöpfe und Turm-Karte, und die Bauleiste weicht, solange ein Turm gewählt ist.
+Die Bedienelemente halten den sicheren Bereich des Displays frei (Kameraloch, Notch) und auf Touch-Geräten einen
+kleinen Rand für runde Ecken; das Spielfeld selbst reicht bis zum Rand. Im Hochformat: zweite Zeile für die Knöpfe oben, Bauleiste in zwei Reihen, Menü zwei mal zwei,
 die Kamera-Zoomgröße gilt dann für die Breite.
 
 Ziehen hält die Karte fest: der Punkt unter dem Finger bleibt unter dem Finger. Zwei Finger zoomen um ihre

@@ -62,20 +62,22 @@ var _end_text := Label.new()
 var _endless_button := Button.new()
 var _ability_buttons: Dictionary = {}
 var _bars := Control.new()
+var _root := Control.new()
 var _icons: Dictionary = {}
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # bedienbar, auch wenn das Spiel pausiert
-	var root := Control.new()
+	# Lebensbalken liegen über der ganzen Fläche, die Bedienelemente rücken vom Notch weg (siehe _layout).
+	_bars.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_bars.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bars.draw.connect(_draw_bars)
+	add_child(_bars)
+	var root := _root
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.theme = make_theme()
 	add_child(root)
-	_bars.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_bars.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_bars.draw.connect(_draw_bars)
-	root.add_child(_bars)
 	_build_top(root)
 	_build_bottom(root)
 	_build_card(root)
@@ -107,6 +109,10 @@ func _ready() -> void:
 func _layout() -> void:
 	var narrow: bool = UiScale.narrow
 	var compact: bool = UiScale.compact
+	_root.offset_left = UiScale.safe.x
+	_root.offset_top = UiScale.safe.y
+	_root.offset_right = -UiScale.safe.z
+	_root.offset_bottom = -UiScale.safe.w
 	for label in _stat_labels:
 		label.add_theme_font_size_override("font_size", 18 if compact else 22)
 	for button in _top_buttons:

@@ -84,13 +84,16 @@ func _layout() -> void:
 ## Verkleinern, bis alles auf den Bildschirm passt (Größer wird es nie).
 func _fit() -> void:
 	var need := _column.get_combined_minimum_size()
-	var room := get_viewport_rect().size - Vector2.ONE * MARGIN * 2.0
+	# Platz ohne die Ränder, die Notch und runde Ecken verdecken.
+	var safe: Vector4 = UiScale.safe
+	var area := Rect2(Vector2(safe.x, safe.y), get_viewport_rect().size - Vector2(safe.x + safe.z, safe.y + safe.w))
+	var room := area.size - Vector2.ONE * MARGIN * 2.0
 	if need.x <= 0.0 or need.y <= 0.0:
 		return
 	var fit := minf(1.0, minf(room.x / need.x, room.y / need.y))
 	_column.size = need
 	_column.scale = Vector2(fit, fit)
-	_column.position = (get_viewport_rect().size - need * fit) / 2.0
+	_column.position = area.position + (area.size - need * fit) / 2.0
 
 
 ## Schwierigkeit und Grafikstufe.

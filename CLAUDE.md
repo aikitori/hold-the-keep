@@ -32,7 +32,8 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
   in `user://settings.cfg`, laufendes Spiel in `user://savegame.cfg` (`Main.snapshot`/`_restore`, nur zwischen
   Wellen). Test, Bot und Screenshots leiten `Settings.file` und `Settings.save_file` auf eigene Dateien um.
 - `scripts/ui_scale.gd` (Autoload `UiScale`): vergrößert die Oberfläche auf Touch-Geräten, `narrow` im
-  Hochformat, `compact` quer auf Handys (Am Rechner: `--resolution 1920x864 -- --touch-ui`). HUD und Menü hängen an `UiScale.changed`. Am Rechner testen mit `-- --touch-ui` und
+  Hochformat, `compact` quer auf Handys (Am Rechner: `--resolution 1920x864 -- --touch-ui`), `safe` für Notch und
+  runde Ecken (vortäuschen mit `--notch`). HUD und Menü hängen an `UiScale.changed`. Am Rechner testen mit `-- --touch-ui` und
   `--resolution 864x1920`.
 - `scripts/figure.gd` (`Figure.create(key)`): animierte Figur. Skelett-Figuren werden beim ersten Gebrauch
   in Einzelbilder umgerechnet (Autoload `FigureStage` als Platz im Szenenbaum), weil Skinning auf manchen

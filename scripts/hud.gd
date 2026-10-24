@@ -32,7 +32,6 @@ var _wave_label := Label.new()
 var _timer_label := Label.new()
 var _next_button := Button.new()
 var _sound_button := Button.new()
-var _title := Label.new()
 var _top_bar := PanelContainer.new()
 var _preview := Label.new()
 var _preview_wave := -1
@@ -100,7 +99,6 @@ func _ready() -> void:
 ## Bauleiste in zwei Reihen.
 func _layout() -> void:
 	var narrow: bool = UiScale.narrow
-	_title.visible = not narrow
 	_top_row2.visible = narrow
 	_top_row.add_theme_constant_override("separation", 14 if narrow else 22)
 	for button in _top_buttons:
@@ -175,13 +173,6 @@ func _build_top(root: Control) -> void:
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_top_row.add_child(spacer)
-	_title.text = "Hold the Keep"
-	_title.add_theme_font_size_override("font_size", 26)
-	_title.add_theme_color_override("font_color", GOLD)
-	_top_row.add_child(_title)
-	var spacer2 := Control.new()
-	spacer2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_top_row.add_child(spacer2)
 	var menu := Button.new()
 	menu.text = "Menü"
 	menu.pressed.connect(func() -> void: menu_pressed.emit())
@@ -447,11 +438,11 @@ func update_stats(gold: int, lives: int, wave: int, countdown: float, speed: flo
 		_preview.text = "Als Nächstes, Welle %d: %s" % [_preview_wave, Defs.wave_preview(_preview_wave)]
 	for id: StringName in _build_buttons:
 		(_build_buttons[id] as Button).disabled = Defs.TOWERS[id]["cost"] > gold and selected_build != id
+	_toast.offset_top = _top_bar.get_rect().end.y + 8  # die Leiste wächst mit der Wellenvorschau
 	_bars.queue_redraw()
 
 
 func toast(text: String) -> void:
-	_toast.offset_top = _top_bar.get_rect().end.y + 8
 	_toast.text = text
 	_toast.modulate.a = 1.0
 	if _toast_tween != null:

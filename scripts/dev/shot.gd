@@ -1,5 +1,5 @@
 extends Node
-## Screenshots (braucht ein Fenster oder Xvfb): godot res://scenes/dev/shot.tscn -- <Ordner> <karte|menu>
+## Screenshots (braucht ein Fenster oder Xvfb): godot res://scenes/dev/shot.tscn -- <Ordner> <karte|menu|hud>
 ## Baut Türme neben den Weg, spielt im Zeitraffer an und speichert Übersicht, Nahansicht und Turm-Karte.
 
 func _ready() -> void:
@@ -17,6 +17,9 @@ func _ready() -> void:
 		return
 	if what == "gegner":
 		await _enemies(folder)
+		return
+	if what == "hud":
+		await _hud(folder)
 		return
 	Main.map_id = StringName(what)
 	var main: Main = load("res://scenes/main.tscn").instantiate()
@@ -73,6 +76,26 @@ func _ready() -> void:
 	await _frames(2)
 	get_viewport().get_texture().get_image().save_png("%s/%s_turm.png" % [folder, what])
 	Engine.time_scale = 1.0
+	get_tree().quit()
+
+
+## Oberfläche in der Bauzeit: Wellenvorschau, gewählter Turm, danach das Pausenfenster.
+func _hud(folder: String) -> void:
+	Main.map_id = &"vier_felder"
+	var main: Main = load("res://scenes/main.tscn").instantiate()
+	add_child(main)
+	await _frames(2)
+	main.gold = 500
+	main.wave = 11
+	var tower := main.try_build(&"archer", Vector2i(8, 6))
+	main.select_tower(tower)
+	main.rig.position = tower.position
+	await _frames(4)
+	get_viewport().get_texture().get_image().save_png(folder + "/hud.png")
+	main.set_paused(true)
+	await _frames(2)
+	get_viewport().get_texture().get_image().save_png(folder + "/hud_pause.png")
+	get_tree().paused = false
 	get_tree().quit()
 
 

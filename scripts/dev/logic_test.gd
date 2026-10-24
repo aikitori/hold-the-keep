@@ -18,7 +18,9 @@ func _ready() -> void:
 	Settings.file = "user://logic_test.cfg"
 	DirAccess.remove_absolute(Settings.file)
 	Settings.difficulty = &"normal"
+	Lang.apply("de")  # Prüfungen erwarten deutsche Texte, egal welche Sprache eingestellt ist
 	_test_settings()
+	_test_translations()
 	var map := MapData.load_map(&"vier_felder")
 	_check(map.spawn != Vector2i(-1, -1) and map.keep != Vector2i(-1, -1), "Karte hat Friedhof und Burg")
 	var board := Board.new(map)
@@ -240,6 +242,47 @@ func _test_difficulty() -> void:
 	main.queue_free()
 	await get_tree().process_frame
 	Settings.difficulty = &"normal"
+
+
+## Jeder Text, der übersetzt wird, steht in Lang.EN: Literale in tr()/Lang.t() und alle Namen der Spieldaten.
+func _test_translations() -> void:
+	var missing: Array[String] = []
+	var count := 0
+	var literal := RegEx.create_from_string("(?:\\btr|Lang\\.t)\\(\"((?:[^\"\\\\]|\\\\.)*)\"\\)")
+	for file in DirAccess.get_files_at("res://scripts"):
+		if not file.ends_with(".gd") or file == "lang.gd":
+			continue
+		var code := FileAccess.get_file_as_string("res://scripts/" + file)
+		for found in literal.search_all(code):
+			var text := found.get_string(1).replace("\\n", "\n")
+			count += 1
+			if not Lang.EN.has(text):
+				missing.append(text)
+	var texts: Array = []
+	for table: Dictionary in [Defs.TOWERS, Defs.ENEMIES, Defs.ABILITIES, Defs.DIFFICULTIES, MapData.MAPS]:
+		for key in table:
+			texts.append(table[key]["name"])
+			if table[key].has("info"):
+				texts.append(table[key]["info"])
+	for options: Array in Defs.SPECS.values():
+		for option: Dictionary in options:
+			texts.append_array([option["name"], option["info"]])
+	texts.append_array(Defs.TARGET_NAMES.values())
+	texts.append_array(Main.BUILD_MESSAGES.values())
+	for text: String in texts:
+		if not Lang.EN.has(text):
+			missing.append(text)
+	Lang.apply("en")
+	var english: Array = Lang.EN.values()
+	for n in range(1, Defs.WAVES + 1):
+		for part in Defs.wave_preview(n).split(" · ")[0].split("), "):
+			var inner := part.get_slice("(", 1).trim_suffix(")")
+			for word in inner.split(", ", false):
+				if not english.has(word):
+					missing.append(word)
+	Lang.apply("de")
+	_check(count > 60 and missing.is_empty() and Lang.t("Spielen") == "Spielen",
+			"Alle %d Texte übersetzt%s" % [count, "" if missing.is_empty() else ", es fehlt: " + " | ".join(missing)])
 
 
 ## Bestwerte: nur Verbesserungen zählen, je Schwierigkeit getrennt.

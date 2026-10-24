@@ -2,7 +2,7 @@
 
 Isometrisches Tower Defense im Mittelalter in **Godot 4.7.2** (GDScript, 3D mit Orthokamera), Renderer
 `gl_compatibility`, 1280x720 (stretch `canvas_items`, `expand`). Ziele: Android (Debug-APK als Alpha-Release),
-Browser (GitHub Pages). Sprache in Code und Oberfläche: Deutsch, Titel Englisch. Lizenz: GPL v3.
+Browser (GitHub Pages). Sprache im Code: Deutsch, Oberfläche Deutsch und Englisch, Titel Englisch. Lizenz: GPL v3.
 
 Spielregeln und Werte: `docs/GAME_DESIGN.md`.
 
@@ -50,6 +50,8 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
 
 ## Fallstricke
 
+- **Texte immer übersetzen:** `tr("...")` in Knoten, `Lang.t("...")` in statischen Funktionen, Englisch in
+  `Lang.EN` (`scripts/lang.gd`). Erst übersetzen, dann füllen: `tr("Welle %d") % wave`. Der Test meldet fehlende.
 - **Browser hat keine Systemschrift.** Nur Zeichen aus Latein-1 plus Gedankenstrich und Mittelpunkt.
 - **Web-Export ohne Threads.** Schatten und MSAA sind an, auf schwachen Geräten ggf. abschalten.
 - Headless-Tests rendern nichts. Screenshots brauchen ein Fenster oder Xvfb, Software-Rendering ist langsam:

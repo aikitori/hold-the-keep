@@ -152,6 +152,11 @@ Das Menü scrollt nicht: passt es nicht auf den Bildschirm, wird es als Ganzes v
 Darüber Schwierigkeit und Grafikstufe ("niedrig": ohne Schatten und Kantenglättung, für schwache Handys).
 Jede Kachel zeigt den Bestwert auf der gewählten Schwierigkeit (überstandene Wellen oder "Gewonnen!").
 
+## Sprachen
+
+Deutsch und Englisch. Beim ersten Start gilt die Sprache des Systems (Deutsch, sonst Englisch), im Menü
+umschaltbar. Die deutschen Texte im Code sind die Schlüssel, die englischen stehen in `scripts/lang.gd`.
+
 ## Bedienung auf Touch-Geräten
 
 Mit Touchscreen wird die Oberfläche so skaliert, dass die kurze Bildschirmseite etwa 560 Einheiten hat
@@ -164,4 +169,4 @@ Mitte und verschieben zugleich, danach zieht der übrige Finger ohne Sprung weit
 ## Ideen für später
 
 - Mehr Karten.
-- Englisch als zweite Sprache, laufendes Spiel speichern.
+- Laufendes Spiel speichern.

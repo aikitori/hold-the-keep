@@ -177,17 +177,17 @@ func _build_top(root: Control) -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_top_row.add_child(spacer)
 	var menu := Button.new()
-	menu.text = "Menü"
+	menu.text = tr("Menü")
 	menu.pressed.connect(func() -> void: menu_pressed.emit())
 	_sound_button.pressed.connect(func() -> void:
 		Sfx.set_muted(not Sfx.muted)
-		_sound_button.text = "Ton aus" if Sfx.muted else "Ton an")
-	_sound_button.text = "Ton aus" if Sfx.muted else "Ton an"
-	_speed_button.text = "Tempo 1x"
+		_sound_button.text = tr("Ton aus") if Sfx.muted else tr("Ton an"))
+	_sound_button.text = tr("Ton aus") if Sfx.muted else tr("Ton an")
+	_speed_button.text = tr("Tempo %dx") % 1
 	_speed_button.pressed.connect(func() -> void: speed_pressed.emit())
-	_pause_button.text = "Pause"
+	_pause_button.text = tr("Pause")
 	_pause_button.pressed.connect(func() -> void: pause_pressed.emit())
-	_next_button.text = "Nächste Welle"
+	_next_button.text = tr("Nächste Welle")
 	_next_button.pressed.connect(func() -> void: next_wave_pressed.emit())
 	_top_buttons = [menu, _sound_button, _pause_button, _speed_button, _next_button]
 	for button: Button in _top_buttons:
@@ -211,7 +211,7 @@ func _build_bottom(root: Control) -> void:
 		var button := Button.new()
 		button.toggle_mode = true
 		button.custom_minimum_size = Vector2(122, 108)
-		button.tooltip_text = def["info"]
+		button.tooltip_text = tr(def["info"])
 		var box := VBoxContainer.new()
 		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -225,7 +225,7 @@ func _build_bottom(root: Control) -> void:
 		icon.texture = _icon(id)
 		box.add_child(icon)
 		var name_label := Label.new()
-		name_label.text = "%s\n%d Gold" % [def["name"], def["cost"]]
+		name_label.text = tr("%s\n%d Gold") % [tr(def["name"]), def["cost"]]
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_label.add_theme_font_size_override("font_size", 15)
 		name_label.add_theme_constant_override("line_spacing", -2)
@@ -280,7 +280,7 @@ func _build_abilities(root: Control) -> void:
 	for id: StringName in Defs.ABILITY_ORDER:
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(124, 52)
-		button.tooltip_text = Defs.ABILITIES[id]["info"]
+		button.tooltip_text = tr(Defs.ABILITIES[id]["info"])
 		button.add_theme_font_size_override("font_size", 17)
 		button.pressed.connect(func() -> void: ability_pressed.emit(id))
 		box.add_child(button)
@@ -290,10 +290,10 @@ func _build_abilities(root: Control) -> void:
 func update_abilities(wait: Dictionary, aiming: StringName) -> void:
 	for id: StringName in _ability_buttons:
 		var button: Button = _ability_buttons[id]
-		var name: String = Defs.ABILITIES[id]["name"]
+		var name := tr(Defs.ABILITIES[id]["name"])
 		var rest: float = wait[id]
 		button.disabled = rest > 0.0
-		button.text = "%s\n%d s" % [name, ceili(rest)] if rest > 0.0 else ("Ziel wählen" if aiming == id else name)
+		button.text = "%s\n%d s" % [name, ceili(rest)] if rest > 0.0 else (tr("Ziel wählen") if aiming == id else name)
 
 
 func _on_build_toggled(id: StringName, on: bool) -> void:
@@ -344,7 +344,7 @@ func _build_card(root: Control) -> void:
 	_sell_button.pressed.connect(func() -> void: sell_pressed.emit())
 	box.add_child(_sell_button)
 	var close := Button.new()
-	close.text = "Schließen"
+	close.text = tr("Schließen")
 	close.pressed.connect(func() -> void: deselect_pressed.emit())
 	box.add_child(close)
 
@@ -355,14 +355,14 @@ func show_tower(tower: Tower, gold: int) -> void:
 		return
 	var def: Dictionary = Defs.TOWERS[tower.id]
 	_card.visible = true
-	_card_title.text = "%s · Stufe %d" % [tower.title(), tower.level] if def["damage"] > 0 else def["name"]
-	var lines: Array[String] = [def["info"] if tower.spec_id == &"" else Defs.spec(tower.id, tower.spec_id)["info"]]
+	_card_title.text = tr("%s · Stufe %d") % [tr(tower.title()), tower.level] if def["damage"] > 0 else tr(def["name"])
+	var lines: Array[String] = [tr(def["info"] if tower.spec_id == &"" else Defs.spec(tower.id, tower.spec_id)["info"])]
 	if def["damage"] > 0:
-		lines.append("Schaden %d · Reichweite %.1f" % [roundi(tower.damage()), tower.reach()])
-		lines.append("Schüsse pro Sekunde %.1f" % (1.0 / tower.cooldown()))
-		lines.append({"ground": "Trifft Bodengegner", "air": "Trifft nur Fliegende", "both": "Trifft Boden und Luft"}[tower.targets()])
+		lines.append(tr("Schaden %d · Reichweite %.1f") % [roundi(tower.damage()), tower.reach()])
+		lines.append(tr("Schüsse pro Sekunde %.1f") % (1.0 / tower.cooldown()))
+		lines.append(tr({"ground": "Trifft Bodengegner", "air": "Trifft nur Fliegende", "both": "Trifft Boden und Luft"}[tower.targets()]))
 	_target_button.visible = def["damage"] > 0
-	_target_button.text = "Ziel: %s" % Defs.TARGET_NAMES[tower.target_mode]
+	_target_button.text = tr("Ziel: %s") % tr(Defs.TARGET_NAMES[tower.target_mode])
 	var options := tower.spec_options()
 	for i in 2:
 		var button := _spec_buttons[i]
@@ -370,16 +370,16 @@ func show_tower(tower: Tower, gold: int) -> void:
 		if button.visible:
 			var option: Dictionary = options[i]
 			_spec_ids[i] = option["id"]
-			button.text = "%s  %d Gold\n%s" % [option["name"], option["cost"], option["info"]]
+			button.text = tr("%s  %d Gold\n%s") % [tr(option["name"]), option["cost"], tr(option["info"])]
 			button.disabled = option["cost"] > gold
 	if not options.is_empty():
-		lines.append("Wähle eine Spezialisierung:")
+		lines.append(tr("Wähle eine Spezialisierung:"))
 	_card_text.text = "\n".join(lines)
 	var cost := Defs.upgrade_cost(tower.id, tower.level)
 	_upgrade_button.visible = cost > 0
-	_upgrade_button.text = "Ausbauen  %d Gold" % cost
+	_upgrade_button.text = tr("Ausbauen  %d Gold") % cost
 	_upgrade_button.disabled = cost > gold
-	_sell_button.text = "Abreißen  +%d Gold" % roundi(tower.invested * Defs.SELL_SHARE)
+	_sell_button.text = tr("Abreißen  +%d Gold") % roundi(tower.invested * Defs.SELL_SHARE)
 
 
 func _build_end(root: Control) -> void:
@@ -398,15 +398,15 @@ func _build_end(root: Control) -> void:
 	box.add_child(_end_title)
 	_end_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_end_text)
-	_endless_button.text = "Endlos weiterspielen"
+	_endless_button.text = tr("Endlos weiterspielen")
 	_endless_button.pressed.connect(func() -> void: endless_pressed.emit())
 	box.add_child(_endless_button)
 	var again := Button.new()
-	again.text = "Neues Spiel"
+	again.text = tr("Neues Spiel")
 	again.pressed.connect(func() -> void: restart_pressed.emit())
 	box.add_child(again)
 	var menu := Button.new()
-	menu.text = "Zum Menü"
+	menu.text = tr("Zum Menü")
 	menu.pressed.connect(func() -> void: menu_pressed.emit())
 	box.add_child(menu)
 
@@ -421,14 +421,14 @@ func _build_pause(root: Control) -> void:
 	box.add_theme_constant_override("separation", 14)
 	_pause_panel.add_child(box)
 	var title := Label.new()
-	title.text = "Pause"
+	title.text = tr("Pause")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 40)
 	title.add_theme_color_override("font_color", GOLD)
 	box.add_child(title)
 	for entry: Array in [["Weiter", pause_pressed], ["Neu starten", restart_pressed], ["Zum Menü", menu_pressed]]:
 		var button := Button.new()
-		button.text = entry[0]
+		button.text = tr(entry[0])
 		button.custom_minimum_size = Vector2(240, 48)
 		button.pressed.connect((entry[1] as Signal).emit)
 		box.add_child(button)
@@ -436,7 +436,7 @@ func _build_pause(root: Control) -> void:
 
 func show_pause(on: bool) -> void:
 	_pause_panel.visible = on
-	_pause_button.text = "Weiter" if on else "Pause"
+	_pause_button.text = tr("Weiter") if on else tr("Pause")
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -447,8 +447,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 func show_end(won: bool, wave: int) -> void:
 	_end_panel.visible = true
-	_end_title.text = "Die Burg hält!" if won else "Die Burg ist gefallen"
-	_end_text.text = "Alle %d Wellen abgewehrt." % Defs.WAVES if won else "Bis Welle %d durchgehalten." % wave
+	_end_title.text = tr("Die Burg hält!") if won else tr("Die Burg ist gefallen")
+	_end_text.text = tr("Alle %d Wellen abgewehrt.") % Defs.WAVES if won else tr("Bis Welle %d durchgehalten.") % wave
 	_endless_button.visible = won
 
 
@@ -457,17 +457,17 @@ func hide_end() -> void:
 
 
 func update_stats(gold: int, lives: int, wave: int, countdown: float, speed: float, endless := false) -> void:
-	_gold_label.text = "Gold %d" % gold
-	_lives_label.text = "Leben %d" % lives
-	_wave_label.text = "Welle %d (endlos)" % wave if endless else "Welle %d / %d" % [wave, Defs.WAVES]
-	_timer_label.text = "nächste in %d s" % ceili(countdown) if countdown > 0.0 else ""
+	_gold_label.text = tr("Gold %d") % gold
+	_lives_label.text = tr("Leben %d") % lives
+	_wave_label.text = tr("Welle %d (endlos)") % wave if endless else tr("Welle %d / %d") % [wave, Defs.WAVES]
+	_timer_label.text = tr("nächste in %d s") % ceili(countdown) if countdown > 0.0 else ""
 	_next_button.disabled = countdown <= 0.0
-	_next_button.text = "Nächste Welle  +%d" % (int(countdown) / 2) if countdown > 0.0 else "Welle läuft"
-	_speed_button.text = "Tempo %dx" % int(speed)
+	_next_button.text = tr("Nächste Welle  +%d") % (int(countdown) / 2) if countdown > 0.0 else tr("Welle läuft")
+	_speed_button.text = tr("Tempo %dx") % int(speed)
 	_preview.visible = countdown > 0.0
 	if _preview.visible and _preview_wave != wave + 1:
 		_preview_wave = wave + 1
-		_preview.text = "Als Nächstes, Welle %d: %s" % [_preview_wave, Defs.wave_preview(_preview_wave)]
+		_preview.text = tr("Als Nächstes, Welle %d: %s") % [_preview_wave, Defs.wave_preview(_preview_wave)]
 	for id: StringName in _build_buttons:
 		(_build_buttons[id] as Button).disabled = Defs.TOWERS[id]["cost"] > gold and selected_build != id
 	_toast.offset_top = _top_bar.get_rect().end.y + 8  # die Leiste wächst mit der Wellenvorschau

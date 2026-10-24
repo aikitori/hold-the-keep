@@ -235,7 +235,7 @@ static func wave(number: int) -> Array[StringName]:
 static func wave_names(list: Array[StringName]) -> String:
 	var names: Array[String] = []
 	for kind in list:
-		var name: String = ENEMIES[kind]["name"]
+		var name := Lang.t(ENEMIES[kind]["name"])
 		if not ENEMIES[kind].get("boss", false) and not names.has(name):
 			names.append(name)
 	return ", ".join(names)
@@ -252,30 +252,15 @@ static func wave_preview(number: int) -> String:
 		seen[kind] = true
 		var def: Dictionary = ENEMIES[kind]
 		var traits: Array[String] = []
-		if def.get("boss", false):
-			traits.append("Boss")
-		if def.get("air", false):
-			traits.append("fliegt")
-		if def.get("armor", 0.0) > 0.0:
-			traits.append("Rüstung")
-		if def.get("regen", 0.0) > 0.0:
-			traits.append("heilt")
-		if def["speed"] >= 1.8:
-			traits.append("schnell")
-		elif def["speed"] <= 0.8:
-			traits.append("langsam")
-		if def.get("pack", 1) > 1:
-			traits.append("Rudel")
-		if def.get("burrow", false):
-			traits.append("gräbt unter Türmen durch")
-		if def.has("aura"):
-			traits.append("schützt andere")
-		if def.has("split"):
-			traits.append("zerfällt")
-		if def.has("summon"):
-			traits.append("ruft Skelette")
-		parts.append(def["name"] + (" (%s)" % ", ".join(traits) if not traits.is_empty() else ""))
-	return "%s · %d Gegner" % [", ".join(parts), list.size()]
+		for entry: Array in [[def.get("boss", false), "Boss"], [def.get("air", false), "fliegt"],
+				[def.get("armor", 0.0) > 0.0, "Rüstung"], [def.get("regen", 0.0) > 0.0, "heilt"],
+				[def["speed"] >= 1.8, "schnell"], [def["speed"] <= 0.8, "langsam"], [def.get("pack", 1) > 1, "Rudel"],
+				[def.get("burrow", false), "gräbt unter Türmen durch"], [def.has("aura"), "schützt andere"],
+				[def.has("split"), "zerfällt"], [def.has("summon"), "ruft Skelette"]]:
+			if entry[0]:
+				traits.append(Lang.t(entry[1]))
+		parts.append(Lang.t(def["name"]) + (" (%s)" % ", ".join(traits) if not traits.is_empty() else ""))
+	return Lang.t("%s · %d Gegner") % [", ".join(parts), list.size()]
 
 
 ## Lebenspunkte wachsen je Welle um 13 %.

@@ -19,6 +19,10 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=0
 
+[internationalization]
+
+locale/fallback="de"
+
 [input_devices]
 
 pointing/emulate_touch_from_mouse=false

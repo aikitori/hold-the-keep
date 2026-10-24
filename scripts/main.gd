@@ -88,7 +88,7 @@ func _ready() -> void:
 	for id: StringName in Defs.ABILITY_ORDER:
 		ability_wait[id] = 0.0
 	hud.pause_pressed.connect(func() -> void: set_paused(not get_tree().paused))
-	hud.toast("Baue Türme und lege ein Labyrinth: die Toten kommen vom Friedhof!")
+	hud.toast(tr("Baue Türme und lege ein Labyrinth: die Toten kommen vom Friedhof!"))
 	Sfx.music(&"build")
 
 
@@ -243,8 +243,8 @@ func _build_landmarks() -> void:
 				var stone := Models.make(["graveyard/gravestone-cross", "graveyard/gravestone-round", "graveyard/lantern-candle"][_hash(at) % 3])
 				stone.position = Board.world_of(at, 0.2)
 				add_child(stone)
-		_beacon(spawn, "Start", Color("#e0533d"), 2.2)
-	_beacon(map.keep, "Ziel", Hud.GOLD, y + 0.6)
+		_beacon(spawn, tr("Start"), Color("#e0533d"), 2.2)
+	_beacon(map.keep, tr("Ziel"), Hud.GOLD, y + 0.6)
 
 
 ## Deutliche Marke: Schild über dem Feld (immer sichtbar, auch hinter Türmen) und ein pulsierender Ring.
@@ -345,10 +345,10 @@ func _start_wave() -> void:
 	_queue = Defs.wave(wave)
 	_spawn_timer = 0.0
 	var boss: bool = Defs.ENEMIES[_queue[0]].get("boss", false)
-	var label: String = ("Boss! %s mit " % Defs.ENEMIES[_queue[0]]["name"] if boss else "") + Defs.wave_names(_queue)
+	var label: String = (tr("Boss! %s mit ") % tr(Defs.ENEMIES[_queue[0]]["name"]) if boss else "") + Defs.wave_names(_queue)
 	if Defs.is_air_wave(wave):
-		label = "Luftangriff! Geister fliegen über das Labyrinth"
-	hud.toast("Welle %d: %s" % [wave, label])
+		label = tr("Luftangriff! Geister fliegen über das Labyrinth")
+	hud.toast(tr("Welle %d: %s") % [wave, label])
 	Sfx.play(&"wave")
 	Sfx.music(&"battle")
 
@@ -358,7 +358,7 @@ func _pay_interest() -> void:
 	if interest <= 0:
 		return
 	gold += interest
-	hud.toast("Welle %d besiegt! Zinsen: +%d Gold" % [wave, interest])
+	hud.toast(tr("Welle %d besiegt! Zinsen: +%d Gold") % [wave, interest])
 	Sfx.play(&"coins")
 
 
@@ -369,7 +369,7 @@ func continue_endless() -> void:
 	countdown = Defs.WAVE_BREAK
 	hud.hide_end()
 	Sfx.music(&"build")
-	hud.toast("Endlosmodus: wie lange hält die Burg?")
+	hud.toast(tr("Endlosmodus: wie lange hält die Burg?"))
 
 
 ## Fähigkeit auslösen. Pechregen wartet auf einen Tipp auf die Karte (nochmal drücken bricht ab).
@@ -381,7 +381,7 @@ func use_ability(id: StringName) -> void:
 		if _aiming != &"":
 			hud.clear_build()
 			_on_build_selected(&"")
-			hud.toast("Tippe auf die Stelle für den Pechregen")
+			hud.toast(tr("Tippe auf die Stelle für den Pechregen"))
 		else:
 			_ring.visible = false
 		return
@@ -396,7 +396,7 @@ func use_ability(id: StringName) -> void:
 		&"horn":
 			horn_time = def["time"]
 			Sfx.play(&"upgrade")
-	hud.toast("%s!" % def["name"])
+	hud.toast("%s!" % tr(def["name"]))
 
 
 func cast_pitch(at: Vector3) -> void:
@@ -465,7 +465,7 @@ func enemy_killed(enemy: Enemy) -> void:
 	gold += enemy.gold
 	kills += 1
 	if enemy.is_boss:
-		hud.toast("%s besiegt! +%d Gold" % [Defs.ENEMIES[enemy.kind]["name"], enemy.gold])
+		hud.toast(tr("%s besiegt! +%d Gold") % [tr(Defs.ENEMIES[enemy.kind]["name"]), enemy.gold])
 
 
 func enemy_reached_keep(enemy: Enemy) -> void:
@@ -562,11 +562,11 @@ const BUILD_MESSAGES := {
 func try_build(id: StringName, at: Vector2i) -> Tower:
 	var cost: int = Defs.TOWERS[id]["cost"]
 	if gold < cost:
-		_refuse("Zu wenig Gold")
+		_refuse(tr("Zu wenig Gold"))
 		return null
 	var check := board.check_build(at, walkers())
 	if check != Board.BuildCheck.OK:
-		_refuse(BUILD_MESSAGES[check])
+		_refuse(tr(BUILD_MESSAGES[check]))
 		return null
 	gold -= cost
 	var tower := Tower.new()
@@ -596,7 +596,7 @@ func upgrade_selected() -> void:
 		return
 	var cost := Defs.upgrade_cost(_selected.id, _selected.level)
 	if gold < cost:
-		_refuse("Zu wenig Gold")
+		_refuse(tr("Zu wenig Gold"))
 		return
 	gold -= cost
 	_selected.upgrade()
@@ -609,13 +609,13 @@ func specialize_selected(spec_id: StringName) -> void:
 		return
 	var cost: int = Defs.spec(_selected.id, spec_id)["cost"]
 	if gold < cost:
-		_refuse("Zu wenig Gold")
+		_refuse(tr("Zu wenig Gold"))
 		return
 	gold -= cost
 	_selected.specialize(spec_id)
 	Sfx.play(&"spec")
 	_show_ring(_selected.position, _selected.reach())
-	hud.toast("%s: %s" % [Defs.TOWERS[_selected.id]["name"], Defs.spec(_selected.id, spec_id)["name"]])
+	hud.toast("%s: %s" % [tr(Defs.TOWERS[_selected.id]["name"]), tr(Defs.spec(_selected.id, spec_id)["name"])])
 
 
 func sell_selected() -> void:

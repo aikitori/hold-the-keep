@@ -35,7 +35,7 @@ func _ready() -> void:
 	title.add_theme_constant_override("outline_size", 12)
 	column.add_child(title)
 	var tagline := Label.new()
-	tagline.text = "Die Toten ziehen vom Friedhof zur Burg. Baue Türme, lege Labyrinthe, halte die Burg."
+	tagline.text = tr("Die Toten ziehen vom Friedhof zur Burg. Baue Türme, lege Labyrinthe, halte die Burg.")
 	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tagline.custom_minimum_size.x = 420
@@ -80,12 +80,12 @@ func _options() -> Control:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 8)
 	var label := Label.new()
-	label.text = "Schwierigkeit"
+	label.text = tr("Schwierigkeit")
 	row.add_child(label)
 	var group := ButtonGroup.new()
 	for level: StringName in Defs.DIFFICULTY_ORDER:
 		var button := Button.new()
-		button.text = Defs.DIFFICULTIES[level]["name"]
+		button.text = tr(Defs.DIFFICULTIES[level]["name"])
 		button.toggle_mode = true
 		button.button_group = group
 		button.button_pressed = Settings.difficulty == level
@@ -99,7 +99,7 @@ func _options() -> Control:
 	row.add_child(gap)
 	var graphics := Button.new()
 	graphics.custom_minimum_size = Vector2(170, 44)
-	var show := func() -> void: graphics.text = "Grafik: niedrig" if Settings.low_graphics else "Grafik: hoch"
+	var show := func() -> void: graphics.text = tr("Grafik: niedrig") if Settings.low_graphics else tr("Grafik: hoch")
 	show.call()
 	graphics.pressed.connect(func() -> void:
 		Sfx.play(&"click")
@@ -108,12 +108,22 @@ func _options() -> Control:
 	row.add_child(graphics)
 	var music := Button.new()
 	music.custom_minimum_size = Vector2(150, 44)
-	music.text = "Musik: an" if Sfx.music_on else "Musik: aus"
+	music.text = tr("Musik: an") if Sfx.music_on else tr("Musik: aus")
 	music.pressed.connect(func() -> void:
 		Sfx.play(&"click")
 		Sfx.set_music_on(not Sfx.music_on)
-		music.text = "Musik: an" if Sfx.music_on else "Musik: aus")
+		music.text = tr("Musik: an") if Sfx.music_on else tr("Musik: aus"))
 	row.add_child(music)
+	# Sprache: Knopf zeigt die andere Sprache, das Menü baut sich danach neu auf.
+	var language := Button.new()
+	language.custom_minimum_size = Vector2(110, 44)
+	var other: String = Lang.LANGUAGES[(Lang.LANGUAGES.find(Settings.language) + 1) % Lang.LANGUAGES.size()]
+	language.text = Lang.NAMES[other]
+	language.pressed.connect(func() -> void:
+		Sfx.play(&"click")
+		Settings.set_language(other)
+		get_tree().reload_current_scene())
+	row.add_child(language)
 	return row
 
 
@@ -122,9 +132,9 @@ func _show_best() -> void:
 		var best := Settings.best(id)
 		var label: Label = _best_labels[id]
 		if best["won"]:
-			label.text = "Gewonnen! Endlos bis Welle %d" % best["wave"] if best["wave"] > Defs.WAVES else "Gewonnen!"
+			label.text = tr("Gewonnen! Endlos bis Welle %d") % best["wave"] if best["wave"] > Defs.WAVES else tr("Gewonnen!")
 		else:
-			label.text = "Bestwert: Welle %d" % best["wave"] if best["wave"] > 0 else "Noch nicht gespielt"
+			label.text = tr("Bestwert: Welle %d") % best["wave"] if best["wave"] > 0 else tr("Noch nicht gespielt")
 
 
 func _card(id: StringName) -> PanelContainer:
@@ -136,7 +146,7 @@ func _card(id: StringName) -> PanelContainer:
 	box.add_theme_constant_override("separation", 8)
 	panel.add_child(box)
 	var name := Label.new()
-	name.text = def["name"]
+	name.text = tr(def["name"])
 	name.add_theme_font_size_override("font_size", 30)
 	name.add_theme_color_override("font_color", Hud.GOLD)
 	box.add_child(name)
@@ -144,15 +154,15 @@ func _card(id: StringName) -> PanelContainer:
 	preview.set_width(CARD - 20)  # abzüglich Innenabstand der Kachel
 	box.add_child(preview)
 	var info := Label.new()
-	info.text = def["info"]
+	info.text = tr(def["info"])
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	info.custom_minimum_size.x = CARD - 20
 	box.add_child(info)
 	var facts := Label.new()
 	var checkpoints := map.waypoints.size() - 1
-	facts.text = "%d x %d Felder · %s" % [map.size.x, map.size.y,
-			"%d Kontrollpunkte" % checkpoints if checkpoints > 0 else "ohne Kontrollpunkte"]
+	facts.text = tr("%d x %d Felder · %s") % [map.size.x, map.size.y,
+			tr("%d Kontrollpunkte") % checkpoints if checkpoints > 0 else tr("ohne Kontrollpunkte")]
 	facts.add_theme_font_size_override("font_size", 16)
 	facts.add_theme_color_override("font_color", Color("#c9b994"))
 	box.add_child(facts)
@@ -162,7 +172,7 @@ func _card(id: StringName) -> PanelContainer:
 	box.add_child(best)
 	_best_labels[id] = best
 	var play := Button.new()
-	play.text = "Spielen"
+	play.text = tr("Spielen")
 	play.custom_minimum_size.y = 48
 	play.pressed.connect(func() -> void:
 		Sfx.play(&"click")

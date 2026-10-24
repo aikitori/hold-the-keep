@@ -1,11 +1,13 @@
 extends Node
-## Screenshots (braucht ein Fenster oder Xvfb): godot res://scenes/dev/shot.tscn -- <Ordner> <karte|menu|hud>
+## Screenshots (braucht ein Fenster oder Xvfb): godot res://scenes/dev/shot.tscn -- <Ordner> <karte|menu|hud> [en]
 ## Baut Türme neben den Weg, spielt im Zeitraffer an und speichert Übersicht, Nahansicht und Turm-Karte.
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var folder: String = args[0] if args.size() > 0 else "user://"
 	var what: String = args[1] if args.size() > 1 else "vier_felder"
+	if args.has("en"):
+		Lang.apply("en")  # nur für dieses Bild, nicht gespeichert
 	if what == "icon":
 		await _icon(folder)
 		return

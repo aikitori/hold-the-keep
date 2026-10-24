@@ -47,7 +47,7 @@ func _draw() -> void:
 		_label(font, font_size, at, str(i + 1))
 	for spawn in map.spawns:
 		_marker(spawn, cell, Color("#4b3f5a"), "S", font, font_size)
-	_marker(map.keep, cell, Color("#b8873a"), "B", font, font_size)
+	_marker(map.keep, cell, Color("#b8873a"), tr("B"), font, font_size)
 	draw_rect(Rect2(Vector2.ZERO, size), Hud.INK, false, 2.0)
 
 

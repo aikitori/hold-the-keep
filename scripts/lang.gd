@@ -1,0 +1,210 @@
+class_name Lang
+extends RefCounted
+## Sprachen: Deutsch ist die Quelle (die Texte im Code sind die Schlüssel), Englisch kommt aus `EN`.
+## Im Code: tr("...") in Knoten, Lang.t("...") in statischen Funktionen. Formatierte Texte werden erst übersetzt,
+## dann gefüllt: tr("Welle %d") % wave. Neue Texte hier ergänzen, der Test meldet fehlende.
+
+const LANGUAGES: Array[String] = ["de", "en"]
+const NAMES := {"de": "Deutsch", "en": "English"}
+
+const EN := {
+	# Menü
+	"Die Toten ziehen vom Friedhof zur Burg. Baue Türme, lege Labyrinthe, halte die Burg.":
+		"The dead march from the graveyard to the keep. Build towers, lay mazes, hold the keep.",
+	"Schwierigkeit": "Difficulty",
+	"Grafik: niedrig": "Graphics: low",
+	"Grafik: hoch": "Graphics: high",
+	"Musik: an": "Music: on",
+	"Musik: aus": "Music: off",
+	"Gewonnen! Endlos bis Welle %d": "Won! Endless up to wave %d",
+	"Gewonnen!": "Won!",
+	"Bestwert: Welle %d": "Best: wave %d",
+	"Noch nicht gespielt": "Not played yet",
+	"%d x %d Felder · %s": "%d x %d fields · %s",
+	"%d Kontrollpunkte": "%d checkpoints",
+	"ohne Kontrollpunkte": "no checkpoints",
+	"Spielen": "Play",
+	# Oberfläche im Spiel
+	"Menü": "Menu",
+	"Ton aus": "Sound off",
+	"Ton an": "Sound on",
+	"Tempo %dx": "Speed %dx",
+	"Pause": "Pause",
+	"Nächste Welle": "Next wave",
+	"%s\n%d Gold": "%s\n%d gold",
+	"Ziel wählen": "Pick target",
+	"Schließen": "Close",
+	"%s · Stufe %d": "%s · level %d",
+	"Schaden %d · Reichweite %.1f": "Damage %d · range %.1f",
+	"Schüsse pro Sekunde %.1f": "Shots per second %.1f",
+	"Trifft Bodengegner": "Hits ground enemies",
+	"Trifft nur Fliegende": "Hits flyers only",
+	"Trifft Boden und Luft": "Hits ground and air",
+	"Ziel: %s": "Target: %s",
+	"%s  %d Gold\n%s": "%s  %d gold\n%s",
+	"Wähle eine Spezialisierung:": "Choose a specialization:",
+	"Ausbauen  %d Gold": "Upgrade  %d gold",
+	"Abreißen  +%d Gold": "Demolish  +%d gold",
+	"Endlos weiterspielen": "Keep playing (endless)",
+	"Neues Spiel": "New game",
+	"Zum Menü": "To menu",
+	"Weiter": "Continue",
+	"Neu starten": "Restart",
+	"Die Burg hält!": "The keep holds!",
+	"Die Burg ist gefallen": "The keep has fallen",
+	"Alle %d Wellen abgewehrt.": "All %d waves repelled.",
+	"Bis Welle %d durchgehalten.": "Held out until wave %d.",
+	"Gold %d": "Gold %d",
+	"Leben %d": "Lives %d",
+	"Welle %d (endlos)": "Wave %d (endless)",
+	"Welle %d / %d": "Wave %d / %d",
+	"nächste in %d s": "next in %d s",
+	"Nächste Welle  +%d": "Next wave  +%d",
+	"Welle läuft": "Wave running",
+	"Als Nächstes, Welle %d: %s": "Up next, wave %d: %s",
+	# Meldungen
+	"Baue Türme und lege ein Labyrinth: die Toten kommen vom Friedhof!":
+		"Build towers and lay a maze: the dead are coming from the graveyard!",
+	"Start": "Start",
+	"Ziel": "Goal",
+	"Boss! %s mit ": "Boss! %s with ",
+	"Luftangriff! Geister fliegen über das Labyrinth": "Air raid! Ghosts fly over the maze",
+	"Welle %d: %s": "Wave %d: %s",
+	"Welle %d besiegt! Zinsen: +%d Gold": "Wave %d defeated! Interest: +%d gold",
+	"Endlosmodus: wie lange hält die Burg?": "Endless mode: how long will the keep hold?",
+	"Tippe auf die Stelle für den Pechregen": "Tap the spot for the pitch rain",
+	"%s besiegt! +%d Gold": "%s defeated! +%d gold",
+	"Nur auf Gras kann gebaut werden": "You can only build on grass",
+	"Hier steht schon etwas": "Something is already here",
+	"Ein Gegner steht im Weg": "An enemy is in the way",
+	"Der Weg zur Burg darf nicht ganz versperrt werden": "The path to the keep must not be fully blocked",
+	"Zu wenig Gold": "Not enough gold",
+	# Schwierigkeit, Zielwahl, Fähigkeiten
+	"Leicht": "Easy",
+	"Normal": "Normal",
+	"Schwer": "Hard",
+	"Vorderster": "First",
+	"Stärkster": "Strongest",
+	"Schwächster": "Weakest",
+	"Flieger zuerst": "Flyers first",
+	"Glocke": "Bell",
+	"Alle Gegner 4 s lang halb so schnell.": "All enemies at half speed for 4 s.",
+	"Pechregen": "Pitch rain",
+	"Brennendes Pech auf eine Stelle: Schaden und Brand im Umkreis.": "Burning pitch on one spot: damage and fire around it.",
+	"Kriegshorn": "War horn",
+	"Alle Türme schießen 8 s lang doppelt so schnell.": "All towers fire twice as fast for 8 s.",
+	# Türme
+	"Mauer": "Wall",
+	"Blockiert nur. Billig, gut für Labyrinthe.": "Only blocks. Cheap, good for mazes.",
+	"Schütze": "Bowman",
+	"Bogenschütze auf dem Feld. Günstig, trifft Boden und Luft.": "Bowman on the field. Cheap, hits ground and air.",
+	"Speerträger": "Spearman",
+	"Hält die Stellung: kurze Reichweite, harter Stoß. Nur Boden.": "Holds the line: short range, hard thrust. Ground only.",
+	"Bogenturm": "Archer tower",
+	"Schnelle Pfeile auf einen Gegner, Boden und Luft.": "Fast arrows at one enemy, ground and air.",
+	"Balliste": "Ballista",
+	"Weit und stark gegen einzelne Gegner am Boden.": "Long range and strong against single ground enemies.",
+	"Katapult": "Catapult",
+	"Felsbrocken treffen alle in der Nähe. Nur Boden.": "Boulders hit everyone nearby. Ground only.",
+	"Magierturm": "Mage tower",
+	"Magie verlangsamt Gegner, Boden und Luft.": "Magic slows enemies, ground and air.",
+	"Himmelswacht": "Sky watch",
+	"Feuerpfeile gegen fliegende Gegner. Trifft nur Luft.": "Fire arrows against flying enemies. Air only.",
+	"Trebuchet": "Trebuchet",
+	"Riesige Reichweite, großer Einschlag, langsam. Nur Boden.": "Huge range, big impact, slow. Ground only.",
+	# Spezialisierungen
+	"Langbogen": "Longbow",
+	"Viel weiter und stärker.": "Much farther and stronger.",
+	"Salve": "Volley",
+	"Drei Pfeile auf drei Gegner.": "Three arrows at three enemies.",
+	"Ritter": "Knight",
+	"Schwerer Stoß.": "Heavy thrust.",
+	"Pikenier": "Pikeman",
+	"Trifft alle Gegner rundherum.": "Hits all enemies around.",
+	"Feuerpfeile": "Fire arrows",
+	"Gegner brennen nach.": "Enemies keep burning.",
+	"Salventurm": "Volley tower",
+	"Vier Ziele gleichzeitig.": "Four targets at once.",
+	"Riesenbolzen": "Giant bolt",
+	"Doppelter Schaden, etwas langsamer.": "Double damage, a bit slower.",
+	"Flakballiste": "Sky ballista",
+	"Trifft jetzt auch fliegende Gegner.": "Now also hits flying enemies.",
+	"Brandtöpfe": "Fire pots",
+	"Der Einschlag brennt nach.": "The impact keeps burning.",
+	"Steinhagel": "Stone hail",
+	"Wirft doppelt so schnell.": "Throws twice as fast.",
+	"Frostmagier": "Frost mage",
+	"Verlangsamt viel stärker.": "Slows much more.",
+	"Blitzmagier": "Lightning mage",
+	"Der Blitz springt auf vier Gegner.": "The lightning jumps to four enemies.",
+	"Sturmturm": "Storm tower",
+	"Drei Feuerpfeile gleichzeitig.": "Three fire arrows at once.",
+	"Adlerhorst": "Eagle's nest",
+	"Weiter und viel stärker.": "Farther and much stronger.",
+	"Verheerung": "Devastation",
+	"Riesiger Einschlag.": "Huge impact.",
+	"Präzision": "Precision",
+	"Noch weiter, dreifacher Schaden.": "Even farther, triple damage.",
+	# Gegner und ihre Besonderheiten
+	"Skelett": "Skeleton",
+	"Räuber": "Bandit",
+	"Zombie": "Zombie",
+	"Ork": "Orc",
+	"Dieb": "Thief",
+	"Knochenwicht": "Bone imp",
+	"Ghul": "Ghoul",
+	"Schwarzer Ritter": "Black knight",
+	"Orkhäuptling": "Orc warlord",
+	"Gräber": "Digger",
+	"Schildträger": "Shield bearer",
+	"Seuchenzombie": "Plague zombie",
+	"Nekromant": "Necromancer",
+	"Geist": "Ghost",
+	"Irrlicht": "Wisp",
+	"Vampir": "Vampire",
+	"Totengräber": "Gravedigger",
+	"Boss": "Boss",
+	"fliegt": "flies",
+	"Rüstung": "armor",
+	"heilt": "heals",
+	"schnell": "fast",
+	"langsam": "slow",
+	"Rudel": "pack",
+	"gräbt unter Türmen durch": "digs under towers",
+	"schützt andere": "shields others",
+	"zerfällt": "splits",
+	"ruft Skelette": "summons skeletons",
+	"%s · %d Gegner": "%s · %d enemies",
+	# Karten
+	"B": "K",  # Burg in der Kartenvorschau
+	"Vier Felder": "Four Fields",
+	"Vier große Felder, verbunden durch feste Wege. Jedes Feld will sein eigenes Labyrinth.":
+		"Four large fields joined by fixed roads. Each field wants its own maze.",
+	"Rundlauf": "Round Trip",
+	"Eine Runde um die Hochfläche, über vier Kontrollpunkte. Türme auf der Hochfläche stören den Weg nicht.":
+		"A lap around the plateau via four checkpoints. Towers on the plateau never block the path.",
+	"Schlangenpfad": "Serpent Path",
+	"Klassisch: ein fester Weg in Schleifen. Kein Labyrinth, dafür überall Platz für Türme.":
+		"Classic: a fixed winding road. No maze, but room for towers everywhere.",
+	"Weites Feld": "Open Field",
+	"Ein offenes Feld und drei Kontrollpunkte: die Gegner müssen mehrmals quer hindurch.":
+		"An open field and three checkpoints: the enemies must cross it several times.",
+	"Zwei Friedhöfe": "Two Graveyards",
+	"Die Toten kommen von zwei Seiten und müssen über eine der zwei Brücken. Wer eine zubaut, lenkt sie zur anderen.":
+		"The dead come from two sides and must cross one of two bridges. Block one to send them to the other.",
+}
+
+
+static func t(text: String) -> String:
+	return TranslationServer.translate(text)
+
+
+## Englisch anmelden (einmal) und die Sprache setzen.
+static func apply(language: String) -> void:
+	if TranslationServer.get_translation_object("en") == null:
+		var english := Translation.new()
+		english.locale = "en"
+		for key: String in EN:
+			english.add_message(key, EN[key])
+		TranslationServer.add_translation(english)
+	TranslationServer.set_locale(language)

@@ -8,6 +8,8 @@ signal changed
 var file := "user://settings.cfg"
 
 var difficulty: StringName = &"normal"
+## Beim ersten Start die Sprache des Systems (Deutsch, sonst Englisch).
+var language := "de"
 ## Schatten und Kantenglättung aus, für schwache Handys.
 var low_graphics := false
 
@@ -18,12 +20,24 @@ func _ready() -> void:
 	if not Defs.DIFFICULTIES.has(difficulty):
 		difficulty = &"normal"
 	low_graphics = config.get_value("graphics", "low", false)
+	var system := "de" if OS.get_locale_language() == "de" else "en"
+	language = config.get_value("game", "language", system)
+	if not Lang.LANGUAGES.has(language):
+		language = "en"
+	Lang.apply(language)
 	apply_graphics()
 
 
 func set_difficulty(value: StringName) -> void:
 	difficulty = value
 	_store("game", "difficulty", String(value))
+	changed.emit()
+
+
+func set_language(value: String) -> void:
+	language = value
+	_store("game", "language", value)
+	Lang.apply(value)
 	changed.emit()
 
 

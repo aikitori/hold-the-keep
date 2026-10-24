@@ -21,6 +21,8 @@ var wave := 0
 var countdown := Defs.FIRST_WAVE_DELAY
 var game_over := false
 var kills := 0
+## Nach dem Sieg weiterspielen: die Wellen gehen ohne Ende weiter.
+var endless := false
 var _queue: Array[StringName] = []
 var _spawn_timer := 0.0
 var _speed := 1.0
@@ -75,6 +77,7 @@ func _ready() -> void:
 	hud.menu_pressed.connect(func() -> void:
 		_leave()
 		get_tree().change_scene_to_file("res://scenes/menu.tscn"))
+	hud.endless_pressed.connect(continue_endless)
 	hud.pause_pressed.connect(func() -> void: set_paused(not get_tree().paused))
 	hud.toast("Baue Türme und lege ein Labyrinth: die Toten kommen vom Friedhof!")
 
@@ -303,11 +306,12 @@ func _process(delta: float) -> void:
 	elif enemies.is_empty():
 		# Die Pause beginnt erst, wenn der letzte Gegner der Welle besiegt ist oder die Burg erreicht hat.
 		Settings.record(map_id, wave, false)
-		if wave >= Defs.WAVES:
+		if wave >= Defs.WAVES and not endless:
 			_finish(true)
 		else:
 			countdown = Defs.WAVE_BREAK
-	hud.update_stats(gold, lives, wave, countdown if _queue.is_empty() else 0.0, _speed)
+			_pay_interest()
+	hud.update_stats(gold, lives, wave, countdown if _queue.is_empty() else 0.0, _speed, endless)
 	if _selected != null:
 		hud.show_tower(_selected, gold)
 
@@ -323,6 +327,24 @@ func _start_wave() -> void:
 		label = "Luftangriff! Geister fliegen über das Labyrinth"
 	hud.toast("Welle %d: %s" % [wave, label])
 	Sfx.play(&"wave")
+
+
+func _pay_interest() -> void:
+	var interest := mini(int(gold * Defs.INTEREST), Defs.INTEREST_MAX)
+	if interest <= 0:
+		return
+	gold += interest
+	hud.toast("Welle %d besiegt! Zinsen: +%d Gold" % [wave, interest])
+	Sfx.play(&"coins")
+
+
+## Nach dem Sieg: weiter im Endlosmodus.
+func continue_endless() -> void:
+	endless = true
+	game_over = false
+	countdown = Defs.WAVE_BREAK
+	hud.hide_end()
+	hud.toast("Endlosmodus: wie lange hält die Burg?")
 
 
 ## Nächste Welle sofort: Bonus-Gold für die gesparte Zeit.

@@ -12,6 +12,7 @@ signal deselect_pressed
 signal restart_pressed
 signal menu_pressed
 signal pause_pressed
+signal endless_pressed
 signal target_pressed
 signal spec_pressed(spec_id: StringName)
 
@@ -56,6 +57,7 @@ var _pause_button := Button.new()
 var _end_panel := PanelContainer.new()
 var _end_title := Label.new()
 var _end_text := Label.new()
+var _endless_button := Button.new()
 var _bars := Control.new()
 var _icons: Dictionary = {}
 
@@ -373,10 +375,17 @@ func _build_end(root: Control) -> void:
 	box.add_child(_end_title)
 	_end_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_end_text)
+	_endless_button.text = "Endlos weiterspielen"
+	_endless_button.pressed.connect(func() -> void: endless_pressed.emit())
+	box.add_child(_endless_button)
 	var again := Button.new()
 	again.text = "Neues Spiel"
 	again.pressed.connect(func() -> void: restart_pressed.emit())
 	box.add_child(again)
+	var menu := Button.new()
+	menu.text = "Zum Menü"
+	menu.pressed.connect(func() -> void: menu_pressed.emit())
+	box.add_child(menu)
 
 
 func _build_pause(root: Control) -> void:
@@ -417,12 +426,17 @@ func show_end(won: bool, wave: int) -> void:
 	_end_panel.visible = true
 	_end_title.text = "Die Burg hält!" if won else "Die Burg ist gefallen"
 	_end_text.text = "Alle %d Wellen abgewehrt." % Defs.WAVES if won else "Bis Welle %d durchgehalten." % wave
+	_endless_button.visible = won
 
 
-func update_stats(gold: int, lives: int, wave: int, countdown: float, speed: float) -> void:
+func hide_end() -> void:
+	_end_panel.visible = false
+
+
+func update_stats(gold: int, lives: int, wave: int, countdown: float, speed: float, endless := false) -> void:
 	_gold_label.text = "Gold %d" % gold
 	_lives_label.text = "Leben %d" % lives
-	_wave_label.text = "Welle %d / %d" % [wave, Defs.WAVES]
+	_wave_label.text = "Welle %d (endlos)" % wave if endless else "Welle %d / %d" % [wave, Defs.WAVES]
 	_timer_label.text = "nächste in %d s" % ceili(countdown) if countdown > 0.0 else ""
 	_next_button.disabled = countdown <= 0.0
 	_next_button.text = "Nächste Welle  +%d" % (int(countdown) / 2) if countdown > 0.0 else "Welle läuft"

@@ -271,5 +271,16 @@ func _play() -> void:
 	main.select_tower(tower)
 	main.sell_selected()
 	_check(main.gold > gold_before and not main.board.towers.has(tower.cell), "Abreißen gibt Gold zurück")
+	main.gold = 200
+	main._pay_interest()
+	var small: int = main.gold - 200
+	main.gold = 2000
+	main._pay_interest()
+	_check(small == 10 and main.gold == 2025, "Zinsen 5 %%, höchstens 25 (%d)" % small)
+	main.wave = Defs.WAVES
+	main._finish(true)
+	main.continue_endless()
+	_check(not main.game_over and main.endless and main.countdown > 0.0 and not Defs.wave(Defs.WAVES + 5).is_empty(),
+			"Nach dem Sieg geht es endlos weiter")
 	main.queue_free()
 	await get_tree().process_frame

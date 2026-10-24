@@ -112,7 +112,10 @@ func _show_best() -> void:
 	for id: StringName in _best_labels:
 		var best := Settings.best(id)
 		var label: Label = _best_labels[id]
-		label.text = "Gewonnen!" if best["won"] else "Bestwert: Welle %d" % best["wave"] if best["wave"] > 0 else "Noch nicht gespielt"
+		if best["won"]:
+			label.text = "Gewonnen! Endlos bis Welle %d" % best["wave"] if best["wave"] > Defs.WAVES else "Gewonnen!"
+		else:
+			label.text = "Bestwert: Welle %d" % best["wave"] if best["wave"] > 0 else "Noch nicht gespielt"
 
 
 func _card(id: StringName) -> PanelContainer:

@@ -14,6 +14,9 @@ const FIRST_WAVE_DELAY := 45.0
 const WAVE_BREAK := 25.0
 const SPAWN_GAP := 0.6
 const SELL_SHARE := 0.7
+## Ist eine Welle besiegt, gibt es Zinsen auf das gesparte Gold (höchstens INTEREST_MAX).
+const INTEREST := 0.05
+const INTEREST_MAX := 25
 const MAX_LEVEL := 3
 ## Pro Stufe: Schaden x1,7, Reichweite +0,4, Nachladen x0,9. Ausbau kostet 80 % bzw. 130 % des Grundpreises.
 const LEVEL_DAMAGE := 1.7

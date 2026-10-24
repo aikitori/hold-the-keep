@@ -380,14 +380,33 @@ func _start_wave(save := true) -> void:
 	Sfx.music(&"battle")
 
 
+## Nach jeder besiegten Welle: Zinsen auf das Gold und die Einnahmen der Zollhäuser.
 func _pay_interest() -> void:
 	var interest := mini(int(gold * Defs.INTEREST), Defs.INTEREST_MAX)
-	if interest <= 0:
+	var toll := 0
+	for tower: Variant in board.towers.values():
+		if tower is Tower:
+			toll += Defs.tower_income(tower.id, tower.level, tower.spec_id)
+	if interest + toll <= 0:
 		return
-	gold += interest
-	gold_earned += interest
-	hud.toast(tr("Welle %d besiegt! Zinsen: +%d Gold") % [wave, interest])
+	gold += interest + toll
+	gold_earned += interest + toll
+	if toll > 0:
+		hud.toast(tr("Welle %d besiegt! Zinsen +%d, Zoll +%d Gold") % [wave, interest, toll])
+	else:
+		hud.toast(tr("Welle %d besiegt! Zinsen: +%d Gold") % [wave, interest])
 	Sfx.play(&"coins")
+
+
+## Kriegsbanner in Reichweite: (Schadensbonus, Tempobonus), es zählt jeweils das stärkste.
+func banner_bonus(tower: Tower) -> Vector2:
+	var best := Vector2.ZERO
+	for other: Variant in board.towers.values():
+		if other is Tower and other != tower and Defs.TOWERS[other.id].has("support") \
+				and Vector2(other.cell - tower.cell).length() <= other.reach():
+			best.x = maxf(best.x, Defs.tower_support(other.id, other.level))
+			best.y = maxf(best.y, other.stat("haste", 0.0))
+	return best
 
 
 ## Nach dem Sieg: weiter im Endlosmodus.
@@ -494,8 +513,13 @@ func aura_armor(enemy: Enemy) -> float:
 
 func enemy_killed(enemy: Enemy) -> void:
 	enemies.erase(enemy)
-	gold += enemy.gold
-	gold_earned += enemy.gold
+	var bounty := 0
+	for tower: Variant in board.towers.values():
+		if enemy.gold > 0 and tower is Tower and tower.stat("bounty", 0) > 0 \
+				and Vector2(enemy.position.x - tower.position.x, enemy.position.z - tower.position.z).length() <= tower.reach():
+			bounty += int(tower.stat("bounty", 0))
+	gold += enemy.gold + bounty
+	gold_earned += enemy.gold + bounty
 	kills += 1
 	if enemy.is_boss:
 		hud.toast(tr("%s besiegt! +%d Gold") % [tr(Defs.ENEMIES[enemy.kind]["name"]), enemy.gold])

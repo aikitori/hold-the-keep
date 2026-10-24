@@ -198,6 +198,40 @@ func _enemy(main: Main, kind: StringName, at: Vector3) -> Enemy:
 	return enemy
 
 
+## Bombarde schießt Kanonenkugeln, Gift stapelt und geht durch Rüstung, Banner verstärkt, Zollhaus bringt Gold.
+func _test_new_towers(main: Main) -> void:
+	main.gold = 1000
+	var archer: Tower = main.try_build(&"archer", Vector2i(11, 7))
+	var plain := archer.damage()
+	var banner: Tower = main.try_build(&"banner", Vector2i(12, 7))
+	_check(banner != null and is_equal_approx(archer.damage(), plain * 1.25), "Kriegsbanner: +25 % Schaden im Umkreis")
+	var toll: Tower = main.try_build(&"tollhouse", Vector2i(10, 9))
+	main.gold = 100
+	main._pay_interest()
+	_check(toll != null and main.gold == 100 + 5 + 6, "Zollhaus: 6 Gold nach der Welle, dazu Zinsen (%d)" % main.gold)
+	var knight := _enemy(main, &"knight", Board.world_of(Vector2i(8, 6)))
+	for i in 4:
+		knight.apply_poison(5.0, 3)
+	var hp := knight.hp
+	knight._process(1.0)
+	_check(knight.poison_stacks() == 3 and hp - knight.hp > 14.0, "Gift stapelt bis drei und geht durch Rüstung (%.0f Schaden)" % (hp - knight.hp))
+	var bombard: Tower = main.try_build(&"bombard", Vector2i(9, 7))
+	var target := _enemy(main, &"orc", bombard.position + Vector3(1, 0, 0))
+	bombard._cooldown = 0.0
+	bombard._process(0.016)
+	var shots := main.get_children().filter(func(n: Node) -> bool: return n is Projectile and n.kind == "cannonball")
+	_check(bombard != null and shots.size() == 1 and shots[0].hit["splash"] > 0.0, "Bombarde schießt Kanonenkugeln mit Flächenschaden")
+	for shot in shots:
+		shot.queue_free()
+	for enemy in [knight, target]:
+		main.enemies.erase(enemy)
+		enemy.queue_free()
+	for tower in [archer, banner, toll, bombard]:
+		main.select_tower(tower)
+		main.sell_selected()
+	await get_tree().process_frame
+
+
 ## Gräber, Schildträger, Seuchenzombie und Nekromant.
 func _test_new_enemies(main: Main) -> void:
 	var digger := _enemy(main, &"burrower", Board.world_of(main.map.spawn))
@@ -457,6 +491,7 @@ func _play() -> void:
 	_check(picked == Defs.BUILD_ORDER[1] and main.hud.selected_build == &"", "Taste 2 wählt den zweiten Turm und wieder ab")
 	await _test_abilities(main)
 	await _test_new_enemies(main)
+	await _test_new_towers(main)
 	main.select_tower(tower)
 	main.upgrade_selected()
 	_check(tower.level == 2, "Ausbau auf Stufe 2")

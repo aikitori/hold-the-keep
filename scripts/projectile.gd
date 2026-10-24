@@ -32,6 +32,11 @@ func launch(shot_kind: String, from: Vector3, enemy: Enemy, effect: Dictionary, 
 		"arrow", "bolt":
 			_model = Models.make("td/weapon-ammo-arrow")
 			_model.scale = Vector3.ONE * (0.5 if kind == "arrow" else 0.8)
+		"cannonball":
+			_model = Models.make("td/weapon-ammo-cannonball")
+			_model.scale = Vector3.ONE * 0.6
+		"poison":
+			_model = _orb(0.11, Color(0.45, 0.95, 0.3))
 		"boulder":
 			_model = Models.make("td/weapon-ammo-boulder")
 			_model.scale = Vector3.ONE * (0.5 if hit["splash"] < 1.5 else 0.8)
@@ -61,13 +66,14 @@ static func _orb(radius: float, color: Color) -> MeshInstance3D:
 
 func _process(delta: float) -> void:
 	_t += delta
-	var arc := kind == "boulder"
+	var arc := kind in ["boulder", "cannonball"]
 	if not arc and is_instance_valid(target) and target.alive:
 		_to = target.global_position + Vector3(0, 0.3, 0)
 	var f := clampf(_t / _duration, 0.0, 1.0)
 	var pos := _from.lerp(_to, f)
 	if arc:
-		pos.y += sin(f * PI) * maxf(1.0, _from.distance_to(_to) * 0.35)
+		var lift := 0.15 if kind == "cannonball" else 0.35  # Kanonenkugeln fliegen flacher
+		pos.y += sin(f * PI) * maxf(0.6 if kind == "cannonball" else 1.0, _from.distance_to(_to) * lift)
 	if pos.distance_squared_to(position) > 0.0001:
 		look_at(pos, Vector3.UP, true)
 	position = pos
@@ -98,7 +104,9 @@ func _apply(enemy: Enemy) -> void:
 		enemy.apply_slow(hit["slow"], hit["slow_time"])
 	if hit["burn"] > 0.0:
 		enemy.apply_burn(hit["burn"], 3.0, hit.get("source"))
-	enemy.take_damage(hit["damage"], kind in ["magic", "fire"], hit.get("source"))
+	if hit.get("poison", 0.0) > 0.0:
+		enemy.apply_poison(hit["poison"], hit["stacks"], hit.get("source"))
+	enemy.take_damage(hit["damage"], kind in ["magic", "fire", "poison"], hit.get("source"))
 
 
 ## Kettenblitz: weiter zum nächsten Gegner, der noch nicht getroffen wurde.

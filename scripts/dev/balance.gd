@@ -3,7 +3,8 @@ extends Node
 ## Der Bot baut nur neben den Weg (kein Labyrinth), baut aus und spezialisiert: ein schwacher Spieler.
 ## Start: godot --headless res://scenes/dev/balance.tscn -- <karte> [easy|normal|hard]
 
-const MIX: Array[StringName] = [&"archer", &"mage", &"ballista", &"catapult", &"archer", &"skyguard", &"trebuchet", &"spearman"]
+const MIX: Array[StringName] = [&"archer", &"bombard", &"mage", &"ballista", &"poison", &"banner", &"catapult",
+		&"skyguard", &"tollhouse", &"trebuchet", &"spearman"]
 
 
 func _ready() -> void:

@@ -385,7 +385,7 @@ func show_tower(tower: Tower, gold: int) -> void:
 		return
 	var def: Dictionary = Defs.TOWERS[tower.id]
 	_card.visible = true
-	_card_title.text = tr("%s · Stufe %d") % [tr(tower.title()), tower.level] if def["damage"] > 0 else tr(def["name"])
+	_card_title.text = tr("%s · Stufe %d") % [tr(tower.title()), tower.level] if tower.id != &"wall" else tr(def["name"])
 	var lines: Array[String] = [tr(def["info"] if tower.spec_id == &"" else Defs.spec(tower.id, tower.spec_id)["info"])]
 	if def["damage"] > 0:
 		lines.append(tr("Schaden %d · Reichweite %.1f") % [roundi(tower.damage()), tower.reach()])
@@ -393,6 +393,14 @@ func show_tower(tower: Tower, gold: int) -> void:
 		lines.append(tr({"ground": "Trifft Bodengegner", "air": "Trifft nur Fliegende", "both": "Trifft Boden und Luft"}[tower.targets()]))
 		if tower.kills > 0:
 			lines.append(tr("Besiegt: %d") % tower.kills)
+	if def.has("support"):
+		lines.append(tr("Türme im Umkreis: +%d %% Schaden") % roundi(Defs.tower_support(tower.id, tower.level) * 100))
+		if tower.stat("haste", 0.0) > 0.0:
+			lines.append(tr("und +%d %% Tempo") % roundi(tower.stat("haste", 0.0) * 100))
+	if def.has("income"):
+		lines.append(tr("Gold je Welle: %d") % Defs.tower_income(tower.id, tower.level, tower.spec_id))
+		if tower.stat("bounty", 0) > 0:
+			lines.append(tr("Kopfgeld: +%d Gold im Umkreis") % tower.stat("bounty", 0))
 	_target_button.visible = def["damage"] > 0
 	_target_button.text = tr("Ziel: %s") % tr(Defs.TARGET_NAMES[tower.target_mode])
 	var options := tower.spec_options()

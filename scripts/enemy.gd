@@ -4,6 +4,7 @@ extends Node3D
 ## Weg, wenn gebaut wird. Fliegende Gegner folgen der festen Flugroute über alles hinweg.
 
 const GROUND := 0.2
+const POISON_TIME := 4.0
 
 var kind: StringName
 var max_hp := 1.0
@@ -36,6 +37,11 @@ var _regen := 0.0
 ## Turm des letzten Treffers (bekommt den Sieg gutgeschrieben) und des Brandes.
 var _last_source: Tower
 var _burn_source: Tower
+var _poison := 0.0  # Schaden pro Sekunde und Stapel
+var _poison_stacks := 0
+var _poison_time := 0.0
+var _poison_source: Tower
+var _toxic: Node3D
 var _summon_time := 0.0
 var _dust := 0.0
 
@@ -154,6 +160,22 @@ func apply_slow(factor: float, seconds: float) -> void:
 	_slow_time = maxf(_slow_time, seconds)
 
 
+## Gift stapelt sich bis max_stacks, jeder Treffer frischt die Dauer auf.
+func apply_poison(per_second: float, max_stacks: int, source: Tower = null) -> void:
+	_poison = maxf(_poison, per_second)
+	_poison_stacks = mini(_poison_stacks + 1, max_stacks)
+	_poison_time = POISON_TIME
+	_poison_source = source
+	if _toxic == null:
+		_toxic = Projectile._orb(0.1, Color(0.45, 0.95, 0.3))
+		_toxic.position.y = 0.65
+		add_child(_toxic)
+
+
+func poison_stacks() -> int:
+	return _poison_stacks if _poison_time > 0.0 else 0
+
+
 func apply_burn(per_second: float, seconds: float, source: Tower = null) -> void:
 	_burn_source = source
 	_burn = maxf(_burn, per_second)
@@ -197,7 +219,17 @@ func _process(delta: float) -> void:
 			_fire = null
 		if not alive:
 			return
-	if _regen > 0.0 and _burn_time <= 0.0:
+	if _poison_time > 0.0:
+		_poison_time -= delta
+		take_damage(_poison * _poison_stacks * delta, true, _poison_source if is_instance_valid(_poison_source) else null)
+		if _poison_time <= 0.0:
+			_poison_stacks = 0
+			if _toxic != null:
+				_toxic.queue_free()
+				_toxic = null
+		if not alive:
+			return
+	if _regen > 0.0 and _burn_time <= 0.0 and _poison_time <= 0.0:
 		hp = minf(max_hp, hp + max_hp * _regen * delta)
 	if _summon_time > 0.0:
 		_summon_time -= delta

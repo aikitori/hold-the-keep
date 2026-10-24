@@ -29,6 +29,10 @@ const UPGRADE_SHARE: Array[float] = [0.8, 1.3]
 ## level_parts: kommt mit Stufe 2 und 3 unter die Spitze (der Turm wächst).
 ## unit: eine Figur, die fest auf ihrem Feld steht und sich zum Ziel dreht (props: was sie in der Hand hält).
 ## targets: "ground", "air" oder "both". projectile "melee": trifft sofort (Nahkampf).
+## barrel: gezeichnetes Kanonenrohr als Waffe, top: Modell oben drauf (dreht sich nicht).
+## poison: Gift pro Sekunde und Stapel (stacks: höchstens so viele), geht durch Rüstung, hemmt Heilung.
+## support: Türme im Umkreis (range) machen so viel mehr Schaden, haste: schießen so viel schneller.
+## income: Gold nach jeder besiegten Welle, bounty: Gegner im Umkreis geben so viel Gold mehr.
 const TOWERS := {
 	&"wall": {
 		"name": "Mauer", "cost": 5, "info": "Blockiert nur. Billig, gut für Labyrinthe.",
@@ -48,6 +52,28 @@ const TOWERS := {
 		"name": "Bogenturm", "cost": 15, "info": "Schnelle Pfeile auf einen Gegner, Boden und Luft.",
 		"parts": ["castle/tower-square-base", "castle/tower-square-top"], "level_parts": ["castle/tower-square-mid"],
 		"damage": 7, "range": 3.5, "cooldown": 0.7, "projectile": "arrow", "speed": 14.0, "targets": "both",
+	},
+	&"bombard": {
+		"name": "Bombarde", "cost": 30, "info": "Kanonenkugeln mit Flächenschaden, schneller als das Katapult. Nur Boden.",
+		"parts": ["castle/tower-base"], "barrel": true, "level_parts": ["castle/tower-hexagon-mid"],
+		"damage": 14, "range": 3.8, "cooldown": 1.3, "projectile": "cannonball", "speed": 11.0, "splash": 0.9,
+		"targets": "ground",
+	},
+	&"poison": {
+		"name": "Giftküche", "cost": 35, "info": "Gift stapelt sich, geht durch Rüstung und hemmt Heilung. Boden und Luft.",
+		"parts": ["castle/tower-base"], "top": "graveyard/fire-basket", "level_parts": ["castle/tower-hexagon-mid"],
+		"damage": 3, "range": 3.2, "cooldown": 0.8, "projectile": "poison", "speed": 9.0, "poison": 5.0, "stacks": 3,
+		"targets": "both",
+	},
+	&"banner": {
+		"name": "Kriegsbanner", "cost": 40, "info": "Türme im Umkreis machen mehr Schaden. Schießt selbst nicht.",
+		"parts": ["castle/tower-base"], "top": "castle/flag-banner-long", "level_parts": ["castle/tower-hexagon-mid"],
+		"damage": 0, "range": 2.5, "cooldown": 0.0, "support": 0.25, "targets": "ground",
+	},
+	&"tollhouse": {
+		"name": "Zollhaus", "cost": 50, "info": "Bringt nach jeder besiegten Welle Gold. Schießt nicht.",
+		"parts": ["castle/tower-square-base", "castle/tower-square-roof"], "level_parts": ["castle/tower-square-mid-windows"],
+		"damage": 0, "range": 0.0, "cooldown": 0.0, "income": 6, "targets": "ground",
 	},
 	&"ballista": {
 		"name": "Balliste", "cost": 35, "info": "Weit und stark gegen einzelne Gegner am Boden.",
@@ -80,8 +106,8 @@ const TOWERS := {
 		"targets": "ground",
 	},
 }
-const BUILD_ORDER: Array[StringName] = [&"wall", &"bowman", &"spearman", &"archer", &"ballista", &"catapult",
-		&"mage", &"skyguard", &"trebuchet"]
+const BUILD_ORDER: Array[StringName] = [&"wall", &"bowman", &"spearman", &"archer", &"bombard", &"poison",
+		&"ballista", &"catapult", &"mage", &"skyguard", &"banner", &"tollhouse", &"trebuchet"]
 
 ## Fähigkeiten mit Abklingzeit (Sekunden Spielzeit, zu Beginn bereit). Pechregen braucht ein Ziel auf der Karte,
 ## sein Schaden wächst mit den Wellen wie die Lebenspunkte der Gegner.
@@ -128,6 +154,22 @@ const SPECS := {
 	&"skyguard": [
 		{"id": &"storm", "name": "Sturmturm", "info": "Drei Feuerpfeile gleichzeitig.", "cost": 60, "multishot": 3},
 		{"id": &"eagle", "name": "Adlerhorst", "info": "Weiter und viel stärker.", "cost": 60, "range": 2.0, "damage": 1.9},
+	],
+	&"bombard": [
+		{"id": &"culverin", "name": "Feldschlange", "info": "Viel weiter, stärkere Kugeln.", "cost": 60, "range": 1.5, "damage": 1.6},
+		{"id": &"grapeshot", "name": "Kartätsche", "info": "Breite Streuung, schneller nachgeladen.", "cost": 60, "splash": 1.5, "cooldown": 0.75},
+	],
+	&"poison": [
+		{"id": &"plague_pot", "name": "Seuchenkessel", "info": "Das Gift trifft alle am Einschlag.", "cost": 55, "splash": 1.2},
+		{"id": &"black_death", "name": "Schwarzer Tod", "info": "Viel stärkeres Gift, stapelt bis sechsfach.", "cost": 60, "poison": 9.0, "stacks": 6},
+	],
+	&"banner": [
+		{"id": &"warlord_banner", "name": "Feldherr", "info": "Türme im Umkreis schießen auch schneller.", "cost": 60, "haste": 0.2},
+		{"id": &"great_banner", "name": "Großes Banner", "info": "Viel größerer Umkreis.", "cost": 50, "range": 1.5},
+	],
+	&"tollhouse": [
+		{"id": &"treasury", "name": "Schatzkammer", "info": "Doppelte Einnahmen.", "cost": 80, "income": 2.0},
+		{"id": &"bounty", "name": "Kopfgeld", "info": "Gegner im Umkreis geben 1 Gold mehr.", "cost": 60, "bounty": 1, "range": 3.0},
 	],
 	&"trebuchet": [
 		{"id": &"devastation", "name": "Verheerung", "info": "Riesiger Einschlag.", "cost": 160, "splash": 2.8, "damage": 1.5},
@@ -282,12 +324,22 @@ static func tower_damage(id: StringName, level: int, spec_id: StringName = &"") 
 
 static func tower_range(id: StringName, level: int, spec_id: StringName = &"") -> float:
 	if TOWERS[id]["range"] <= 0.0:
-		return 0.0
+		return spec(id, spec_id).get("range", 0.0)  # Zollhaus mit Kopfgeld bekommt erst so einen Umkreis
 	return TOWERS[id]["range"] + LEVEL_RANGE * (level - 1) + spec(id, spec_id).get("range", 0.0)
 
 
 static func tower_cooldown(id: StringName, level: int, spec_id: StringName = &"") -> float:
 	return TOWERS[id]["cooldown"] * pow(LEVEL_COOLDOWN, level - 1) * spec(id, spec_id).get("cooldown", 1.0)
+
+
+## Kriegsbanner: Schadensbonus für Türme im Umkreis, je Stufe 10 Prozentpunkte mehr.
+static func tower_support(id: StringName, level: int) -> float:
+	return TOWERS[id].get("support", 0.0) + (0.1 * (level - 1) if TOWERS[id].has("support") else 0.0)
+
+
+## Zollhaus: Gold nach jeder besiegten Welle (6, 10, 15 je Stufe, Schatzkammer doppelt).
+static func tower_income(id: StringName, level: int, spec_id: StringName = &"") -> int:
+	return roundi(TOWERS[id].get("income", 0) * [1.0, 1.7, 2.5][level - 1] * spec(id, spec_id).get("income", 1.0))
 
 
 static func tower_targets(id: StringName, spec_id: StringName = &"") -> String:

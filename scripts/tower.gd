@@ -78,6 +78,37 @@ static func build_model(tower_id: StringName, tower_level: int, spec := &"") -> 
 			unit.add_child(prop)
 			side = -side
 		y += 0.7
+	if def.get("barrel", false):
+		# Kanonenrohr: dunkles Eisen, zeigt nach vorn (+z) und leicht nach oben.
+		var barrel := MeshInstance3D.new()
+		var tube := CylinderMesh.new()
+		tube.top_radius = 0.09 * grow
+		tube.bottom_radius = 0.13 * grow
+		tube.height = 0.62 * grow
+		var iron := StandardMaterial3D.new()
+		iron.albedo_color = Color(0.22, 0.22, 0.25)
+		iron.metallic = 0.6
+		iron.roughness = 0.45
+		tube.material = iron
+		barrel.mesh = tube
+		barrel.rotation.x = PI / 2 - 0.3
+		barrel.position = Vector3(0, 0.16, 0.12)
+		weapon.add_child(barrel)
+		var mount := MeshInstance3D.new()
+		var block := BoxMesh.new()
+		block.size = Vector3(0.36, 0.14, 0.4) * grow
+		var wood := StandardMaterial3D.new()
+		wood.albedo_color = Color(0.45, 0.3, 0.18)
+		block.material = wood
+		mount.mesh = block
+		mount.position.y = 0.07
+		weapon.add_child(mount)
+		y += 0.3
+	if def.has("top"):
+		var top := Models.make(def["top"])
+		top.scale = Vector3.ONE * grow
+		weapon.add_child(top)
+		y += Models.height(top) * grow
 	if def.has("weapon"):
 		var model := Models.make(def["weapon"])
 		var s: float = def["scale"] * grow
@@ -111,8 +142,9 @@ func title() -> String:
 	return Defs.spec(id, spec_id)["name"] if spec_id != &"" else name
 
 
+## Mit Bonus durch Kriegsbanner in der Nähe.
 func damage() -> float:
-	return Defs.tower_damage(id, level, spec_id)
+	return Defs.tower_damage(id, level, spec_id) * (1.0 + game.banner_bonus(self).x)
 
 
 func reach() -> float:
@@ -120,7 +152,7 @@ func reach() -> float:
 
 
 func cooldown() -> float:
-	return Defs.tower_cooldown(id, level, spec_id)
+	return Defs.tower_cooldown(id, level, spec_id) / (1.0 + game.banner_bonus(self).y)
 
 
 func targets() -> String:
@@ -187,7 +219,7 @@ func _process(delta: float) -> void:
 	var hit := {
 		"damage": damage(), "splash": stat("splash", 0.0), "slow": stat("slow", 0.0),
 		"slow_time": stat("slow_time", 1.6), "burn": stat("burn", 0.0), "chain": int(stat("chain", 0)),
-		"source": self,
+		"poison": stat("poison", 0.0), "stacks": int(stat("stacks", 3)), "source": self,
 	}
 	Sfx.play_at(_shot_sound(def["projectile"], hit), global_position)
 	if def["projectile"] == "melee":
@@ -208,7 +240,8 @@ func _process(delta: float) -> void:
 func _shot_sound(projectile: String, hit: Dictionary) -> StringName:
 	match projectile:
 		"melee": return &"stab"
-		"boulder": return &"throw"
+		"boulder", "cannonball": return &"throw"
+		"poison": return &"magic"
 		"magic": return &"lightning" if hit["chain"] > 0 else &"magic"
 	return StringName(projectile)  # arrow, bolt, fire
 

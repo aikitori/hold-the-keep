@@ -13,6 +13,7 @@ const WAVES := 30
 const FIRST_WAVE_DELAY := 45.0
 const WAVE_BREAK := 25.0
 const SPAWN_GAP := 0.6
+const HEALTH_GROWTH := 1.15
 const SELL_SHARE := 0.7
 ## Ist eine Welle besiegt, gibt es Zinsen auf das gesparte Gold (höchstens INTEREST_MAX).
 const INTEREST := 0.05
@@ -263,9 +264,9 @@ static func wave_preview(number: int) -> String:
 	return Lang.t("%s · %d Gegner") % [", ".join(parts), list.size()]
 
 
-## Lebenspunkte wachsen je Welle um 13 %.
+## Lebenspunkte wachsen je Welle um HEALTH_GROWTH.
 static func health_factor(number: int) -> float:
-	return pow(1.13, number - 1)
+	return pow(HEALTH_GROWTH, number - 1)
 
 
 static func spec(id: StringName, spec_id: StringName) -> Dictionary:

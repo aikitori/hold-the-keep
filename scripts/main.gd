@@ -28,6 +28,7 @@ var ability_wait: Dictionary = {}
 ## Kriegshorn: so lange schießen alle Türme doppelt so schnell.
 var horn_time := 0.0
 var _aiming: StringName = &""  # Fähigkeit, die noch ein Ziel auf der Karte braucht
+var _aim_cell := Vector2i(-99, -99)  # Touch: erster Tipp zeigt den Umkreis, zweiter löst aus
 var _queue: Array[StringName] = []
 var _spawn_timer := 0.0
 var _spawned := 0  # bei mehreren Friedhöfen kommen die Gegner abwechselnd
@@ -374,10 +375,11 @@ func continue_endless() -> void:
 
 ## Fähigkeit auslösen. Pechregen wartet auf einen Tipp auf die Karte (nochmal drücken bricht ab).
 func use_ability(id: StringName) -> void:
-	if game_over or ability_wait[id] > 0.0:
+	if game_over or get_tree().paused or ability_wait[id] > 0.0:
 		return
 	if id == &"pitch":
 		_aiming = &"" if _aiming == id else id
+		_aim_cell = Vector2i(-99, -99)
 		if _aiming != &"":
 			hud.clear_build()
 			_on_build_selected(&"")
@@ -419,7 +421,7 @@ func cast_pitch(at: Vector3) -> void:
 
 ## Nächste Welle sofort: Bonus-Gold für die gesparte Zeit.
 func call_next_wave() -> void:
-	if game_over or not _queue.is_empty() or countdown <= 0.0:
+	if game_over or get_tree().paused or not _queue.is_empty() or countdown <= 0.0:
 		return
 	gold += int(countdown) / 2
 	if int(countdown) >= 2:
@@ -773,6 +775,10 @@ func _release(at: Vector2, touch: bool) -> void:
 func tap(at: Vector2, touch := false) -> void:
 	var cell := Board.cell_of(rig.ground_point(at))
 	if _aiming != &"":
+		if touch and cell != _aim_cell:
+			_aim_cell = cell
+			_show_ring(rig.ground_point(at), Defs.ABILITIES[_aiming]["radius"])
+			return
 		cast_pitch(rig.ground_point(at))
 		return
 	if _ghost_id != &"":

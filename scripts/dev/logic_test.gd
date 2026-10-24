@@ -143,7 +143,10 @@ func _test_abilities(main: Main) -> void:
 	main.use_ability(&"bell")
 	_check(near._slow == 0.5 and main.ability_wait[&"bell"] > 0.0, "Glocke verlangsamt alle Gegner")
 	main.use_ability(&"pitch")
-	main.cast_pitch(center)
+	var screen := main.rig.camera.unproject_position(center)
+	main.tap(screen, true)
+	_check(near.hp == near.max_hp and main.ability_wait[&"pitch"] == 0.0, "Pechregen per Touch: erster Tipp zeigt nur den Umkreis")
+	main.tap(screen, true)
 	_check(near.hp < near.max_hp and far.hp == far.max_hp and main.ability_wait[&"pitch"] > 0.0, "Pechregen trifft nur am Ziel")
 	main.use_ability(&"horn")
 	_check(main.horn_time > 0.0, "Kriegshorn beschleunigt die Türme")
@@ -359,6 +362,9 @@ func _play() -> void:
 			"Baumusik gewählt, Musik läuft als Schleife")
 	_test_touch_drag(main)
 	main.set_paused(true)
+	main.call_next_wave()
+	main.use_ability(&"bell")
+	_check(main.wave == 0 and main.ability_wait[&"bell"] == 0.0, "In der Pause keine Welle und keine Fähigkeit")
 	var before: float = main.countdown
 	for i in 5:
 		await get_tree().process_frame

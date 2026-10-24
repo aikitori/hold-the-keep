@@ -17,7 +17,7 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
   Bestwert zählt die überstandenen Wellen.
 - Gegner, die die Burg erreichen, kosten 1 Leben, Bosse 5. Bei 0 Leben fällt die Burg.
 - Gold gibt es für jeden besiegten Gegner (Grundwert plus 1 je 6 Wellen).
-- Lebenspunkte der Gegner wachsen je Welle um 13 %.
+- Lebenspunkte der Gegner wachsen je Welle um 15 %.
 - Bodenwellen: 12 Plätze plus 4 je 5 Wellen, Luftwellen 10 Geister plus 1 je 2 Wellen, Bosse mit 10 plus 1 je
   5 Wellen Begleitern. Abstand beim Erscheinen 0,6 s.
 
@@ -103,9 +103,9 @@ Schwächster, bei Türmen für Boden und Luft auch Flieger zuerst. Bei Gleichsta
 - **Rundlauf** (36x26): Ring um eine bebaubare Hochfläche, vier Kontrollpunkte erzwingen eine Runde.
 - **Schlangenpfad** (32x22): fester Weg in Schleifen durch die Hochfläche, kein Labyrinth.
 - **Weites Feld** (38x24): offenes Feld, drei Kontrollpunkte oben und unten.
-- **Zwei Friedhöfe** (36x24): zwei Startpunkte links, die Gegner kommen abwechselnd. Ein Fluss (nicht begehbar,
-  nicht bebaubar) teilt das Feld, zwei Brücken führen hinüber. Eine Brücke zubauen lenkt alle zur anderen, beide
-  zu geht nicht.
+- **Zwei Friedhöfe** (36x24): zwei Startpunkte links, die Burg dazwischen, die Gegner kommen abwechselnd. Ein
+  Fluss (nicht begehbar, nicht bebaubar) teilt das Feld, zwei Brücken führen hinüber. Der Kontrollpunkt liegt am
+  Ostufer: hin und zurück über den Fluss. Eine Brücke zubauen lenkt alle zur anderen, beide zu geht nicht.
 
 ## Anzeige
 
@@ -130,7 +130,7 @@ Links am Rand, jede mit Abklingzeit (zu Beginn bereit, läuft nur, solange gespi
 | Fähigkeit | Abklingzeit | Wirkung |
 |---|---|---|
 | Glocke | 40 s | alle Gegner 4 s lang halb so schnell |
-| Pechregen | 45 s | Ziel antippen: 30 Schaden (wächst wie die Lebenspunkte der Gegner) im Umkreis von 2 Feldern, geht durch Rüstung, danach Brand; trifft keine Flieger |
+| Pechregen | 45 s | Ziel antippen (mit Touch: erster Tipp zeigt den Umkreis, zweiter löst aus): 30 Schaden (wächst wie die Lebenspunkte der Gegner) im Umkreis von 2 Feldern, geht durch Rüstung, danach Brand; trifft keine Flieger |
 | Kriegshorn | 60 s | alle Türme schießen 8 s lang doppelt so schnell |
 
 ## Pause

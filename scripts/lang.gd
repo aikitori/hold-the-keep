@@ -190,8 +190,8 @@ const EN := {
 	"Ein offenes Feld und drei Kontrollpunkte: die Gegner müssen mehrmals quer hindurch.":
 		"An open field and three checkpoints: the enemies must cross it several times.",
 	"Zwei Friedhöfe": "Two Graveyards",
-	"Die Toten kommen von zwei Seiten und müssen über eine der zwei Brücken. Wer eine zubaut, lenkt sie zur anderen.":
-		"The dead come from two sides and must cross one of two bridges. Block one to send them to the other.",
+	"Die Toten kommen von zwei Seiten und müssen über den Fluss zum Kontrollpunkt und zurück. Wer eine Brücke zubaut, lenkt sie zur anderen.":
+		"The dead come from two sides and must cross the river to the checkpoint and back. Block a bridge to send them to the other.",
 }
 
 

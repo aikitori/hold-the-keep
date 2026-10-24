@@ -66,10 +66,12 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
 
 ```bash
 godot --headless res://scenes/dev/logic_test.tscn   # Wege, Bauregeln, Karten, Ausbau, vier Wellen im Zeitraffer
+godot --headless res://scenes/dev/balance.tscn -- <karte> [easy|normal|hard]   # Bot spielt 30 Wellen (ca. 1,5 min)
 godot res://scenes/dev/shot.tscn -- <Ordner> <menu|hud|icon|gegner|vier_felder|rundlauf|schlangenpfad|weites_feld>
 ```
 
 Ausgabe prüfen auf `LOGIC-TEST OK`, keine Zeilen mit `FAIL` oder `SCRIPT ERROR`. Die CI führt den Test aus.
+Der Balance-Bot baut nur neben den Weg (kein Labyrinth): auf Normal soll er knapp gewinnen oder spät verlieren.
 
 ## Release
 

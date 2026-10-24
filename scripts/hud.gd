@@ -11,6 +11,8 @@ signal sell_pressed
 signal deselect_pressed
 signal restart_pressed
 signal menu_pressed
+signal pause_pressed
+signal target_pressed
 signal spec_pressed(spec_id: StringName)
 
 const FONT := preload("res://assets/fonts/MedievalSharp.ttf")
@@ -44,10 +46,13 @@ var _card_title := Label.new()
 var _card_text := Label.new()
 var _upgrade_button := Button.new()
 var _sell_button := Button.new()
+var _target_button := Button.new()
 var _spec_buttons: Array[Button] = []
 var _spec_ids: Array[StringName] = [&"", &""]
 var _toast := Label.new()
 var _toast_tween: Tween
+var _pause_panel := PanelContainer.new()
+var _pause_button := Button.new()
 var _end_panel := PanelContainer.new()
 var _end_title := Label.new()
 var _end_text := Label.new()
@@ -56,6 +61,7 @@ var _icons: Dictionary = {}
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS  # bedienbar, auch wenn das Spiel pausiert
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -69,6 +75,7 @@ func _ready() -> void:
 	_build_bottom(root)
 	_build_card(root)
 	_build_end(root)
+	_build_pause(root)
 	_toast.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	_toast.offset_left = 16
 	_toast.offset_right = -16
@@ -182,9 +189,11 @@ func _build_top(root: Control) -> void:
 	_sound_button.text = "Ton aus" if Sfx.muted else "Ton an"
 	_speed_button.text = "Tempo 1x"
 	_speed_button.pressed.connect(func() -> void: speed_pressed.emit())
+	_pause_button.text = "Pause"
+	_pause_button.pressed.connect(func() -> void: pause_pressed.emit())
 	_next_button.text = "Nächste Welle"
 	_next_button.pressed.connect(func() -> void: next_wave_pressed.emit())
-	_top_buttons = [menu, _sound_button, _speed_button, _next_button]
+	_top_buttons = [menu, _sound_button, _pause_button, _speed_button, _next_button]
 	for button: Button in _top_buttons:
 		button.custom_minimum_size.y = 44
 		_top_row.add_child(button)
@@ -296,6 +305,8 @@ func _build_card(root: Control) -> void:
 	_card_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_card_text.custom_minimum_size = Vector2(230, 0)
 	box.add_child(_card_text)
+	_target_button.pressed.connect(func() -> void: target_pressed.emit())
+	box.add_child(_target_button)
 	_upgrade_button.pressed.connect(func() -> void: upgrade_pressed.emit())
 	box.add_child(_upgrade_button)
 	for i in 2:
@@ -325,6 +336,8 @@ func show_tower(tower: Tower, gold: int) -> void:
 		lines.append("Schaden %d · Reichweite %.1f" % [roundi(tower.damage()), tower.reach()])
 		lines.append("Schüsse pro Sekunde %.1f" % (1.0 / tower.cooldown()))
 		lines.append({"ground": "Trifft Bodengegner", "air": "Trifft nur Fliegende", "both": "Trifft Boden und Luft"}[tower.targets()])
+	_target_button.visible = def["damage"] > 0
+	_target_button.text = "Ziel: %s" % Defs.TARGET_NAMES[tower.target_mode]
 	var options := tower.spec_options()
 	for i in 2:
 		var button := _spec_buttons[i]
@@ -366,6 +379,40 @@ func _build_end(root: Control) -> void:
 	box.add_child(again)
 
 
+func _build_pause(root: Control) -> void:
+	_pause_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_pause_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_pause_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_pause_panel.visible = false
+	root.add_child(_pause_panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	_pause_panel.add_child(box)
+	var title := Label.new()
+	title.text = "Pause"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 40)
+	title.add_theme_color_override("font_color", GOLD)
+	box.add_child(title)
+	for entry: Array in [["Weiter", pause_pressed], ["Neu starten", restart_pressed], ["Zum Menü", menu_pressed]]:
+		var button := Button.new()
+		button.text = entry[0]
+		button.custom_minimum_size = Vector2(240, 48)
+		button.pressed.connect((entry[1] as Signal).emit)
+		box.add_child(button)
+
+
+func show_pause(on: bool) -> void:
+	_pause_panel.visible = on
+	_pause_button.text = "Weiter" if on else "Pause"
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key.pressed and not key.echo and key.keycode == KEY_P:
+		pause_pressed.emit()
+
+
 func show_end(won: bool, wave: int) -> void:
 	_end_panel.visible = true
 	_end_title.text = "Die Burg hält!" if won else "Die Burg ist gefallen"
@@ -402,7 +449,7 @@ func toast(text: String) -> void:
 
 ## Liegt die Bildschirmstelle auf einem Bedienelement? Dann ist ein Tipp nicht für das Spielfeld.
 func blocks(point: Vector2) -> bool:
-	for control: Control in [_card, _end_panel]:
+	for control: Control in [_card, _end_panel, _pause_panel]:
 		if control.visible and control.get_global_rect().has_point(point):
 			return true
 	for node in get_children():

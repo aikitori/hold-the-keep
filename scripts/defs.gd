@@ -79,6 +79,10 @@ const TOWERS := {
 const BUILD_ORDER: Array[StringName] = [&"wall", &"bowman", &"spearman", &"archer", &"ballista", &"catapult",
 		&"mage", &"skyguard", &"trebuchet"]
 
+## Zielwahl der Türme, umschaltbar auf der Turm-Karte. "air" nur für Türme, die Boden und Luft treffen.
+const TARGET_MODES: Array[StringName] = [&"first", &"strong", &"weak", &"air"]
+const TARGET_NAMES := {&"first": "Vorderster", &"strong": "Stärkster", &"weak": "Schwächster", &"air": "Flieger zuerst"}
+
 ## Spezialisierung auf Stufe 3: je Turm zwei Wege. Werte wirken auf die Stufe-3-Werte:
 ## damage (Faktor), range (+Felder), cooldown (Faktor), multishot (Ziele gleichzeitig), chain (springt auf
 ## weitere Gegner), burn (Schaden pro Sekunde für 3 s), slow, splash, targets.

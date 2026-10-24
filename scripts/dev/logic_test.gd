@@ -106,6 +106,34 @@ func _test_maps() -> void:
 		_check((Defs.SPECS[id] as Array).size() == 2, "%s hat zwei Spezialisierungen" % id)
 
 
+## Zielwahl: zwei Gegner neben dem Turm, einer stark und vorne, einer schwach und fliegend.
+func _test_targeting(main: Main, tower: Tower) -> void:
+	var strong := Enemy.new()
+	var weak := Enemy.new()
+	for pair: Array in [[strong, &"orc"], [weak, &"ghost"]]:
+		var enemy: Enemy = pair[0]
+		main.add_child(enemy)
+		enemy.setup(pair[1], 1, main, main.board)
+		enemy.position = tower.position + Vector3(0.5, 0, 0)
+		main.enemies.append(enemy)
+	strong.distance_left = 5.0
+	weak.distance_left = 9.0
+	var picks: Array[String] = []
+	for mode: StringName in [&"first", &"strong", &"weak", &"air"]:
+		tower.target_mode = mode
+		picks.append(String(tower._pick_targets(1)[0].kind))
+	_check(picks == ["orc", "orc", "ghost", "ghost"], "Zielwahl: Vorderster, Stärkster, Schwächster, Flieger (%s)" % ", ".join(picks))
+	tower.target_mode = &"first"
+	var seen: Array[StringName] = []
+	for i in 4:
+		tower.cycle_target()
+		seen.append(tower.target_mode)
+	_check(seen.has(&"air") == (tower.targets() == "both") and seen[-1] == &"first", "Zielwahl schaltet reihum")
+	for enemy in [strong, weak]:
+		main.enemies.erase(enemy)
+		enemy.queue_free()
+
+
 ## Leicht: mehr Gold und Leben, Gegner mit weniger Lebenspunkten.
 func _test_difficulty() -> void:
 	Settings.difficulty = &"easy"
@@ -193,6 +221,12 @@ func _play() -> void:
 	await get_tree().process_frame
 	_check(main.gold == Defs.DIFFICULTIES[&"normal"]["gold"] and main.lives == 20, "Normal: 90 Gold, 20 Leben")
 	_test_touch_drag(main)
+	main.set_paused(true)
+	var before: float = main.countdown
+	for i in 5:
+		await get_tree().process_frame
+	_check(get_tree().paused and main.countdown == before, "Pause hält den Countdown an")
+	main.set_paused(false)
 	main.gold = 2000
 	var built := 0
 	for at in [Vector2i(16, 9), Vector2i(16, 12 - 4), Vector2i(15, 10), Vector2i(14, 8), Vector2i(16, 6), Vector2i(13, 10)]:
@@ -204,6 +238,7 @@ func _play() -> void:
 				break
 	_check(built >= 5, "Türme gebaut (%d)" % built)
 	var tower: Tower = main.board.towers.values()[0]
+	_test_targeting(main, tower)
 	main.select_tower(tower)
 	main.upgrade_selected()
 	_check(tower.level == 2, "Ausbau auf Stufe 2")

@@ -70,7 +70,8 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 | Himmelswacht | 30 | nur Luft | Feuerpfeile |
 | Trebuchet | 90 | Boden | sehr weit, großer Einschlag |
 
-Ziel ist immer der Gegner in Reichweite mit dem kürzesten Restweg zur Burg.
+Zielwahl je Turm (Knopf auf der Turm-Karte): Vorderster (kürzester Restweg zur Burg, Standard), Stärkster,
+Schwächster, bei Türmen für Boden und Luft auch Flieger zuerst. Bei Gleichstand der näher an der Burg.
 
 ## Ausbau und Spezialisierung
 
@@ -111,6 +112,11 @@ Jeder Turm hat einen Schussklang (Pfeil, Bolzen, Wurf, Feuer, Magie, Blitz, Sto�
 Gegner-Tod (Skelette klappern, Geister heulen, Bosse brüllen beim Auftauchen), Glocke bei Schaden an der Burg,
 Gong zu jeder Welle und ein Jingle bei Sieg oder Niederlage. Klänge auf der Karte sind nur zu hören, wenn die
 Stelle im Bild ist; gleiche Klänge sind begrenzt (höchstens 2 bis 3 gleichzeitig, 70 ms Abstand).
+
+## Pause
+
+"Pause" oben (oder Taste P) hält das Spiel an und zeigt Weiter, Neu starten und Zum Menü. Geht die App in den
+Hintergrund (Anruf, anderer Tab), pausiert das Spiel von selbst.
 
 ## Menü
 

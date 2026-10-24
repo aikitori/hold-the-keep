@@ -66,12 +66,16 @@ func _ready() -> void:
 	hud.sell_pressed.connect(sell_selected)
 	hud.deselect_pressed.connect(func() -> void: select_tower(null))
 	hud.spec_pressed.connect(specialize_selected)
+	hud.target_pressed.connect(func() -> void:
+		if _selected != null:
+			_selected.cycle_target())
 	hud.restart_pressed.connect(func() -> void:
-		Engine.time_scale = 1.0
+		_leave()
 		get_tree().reload_current_scene())
 	hud.menu_pressed.connect(func() -> void:
-		Engine.time_scale = 1.0
+		_leave()
 		get_tree().change_scene_to_file("res://scenes/menu.tscn"))
+	hud.pause_pressed.connect(func() -> void: set_paused(not get_tree().paused))
 	hud.toast("Baue Türme und lege ein Labyrinth: die Toten kommen vom Friedhof!")
 
 
@@ -364,6 +368,24 @@ func _finish(won: bool) -> void:
 		Settings.record(map_id, wave, true)
 	hud.show_end(won, wave)
 	Sfx.play(&"victory" if won else &"defeat")
+
+
+func set_paused(on: bool) -> void:
+	if on and game_over:
+		return
+	get_tree().paused = on
+	hud.show_pause(on)
+
+
+## Handy: App in den Hintergrund (Anruf, anderer Tab) hält das Spiel an.
+func _notification(what: int) -> void:
+	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED] and is_inside_tree():
+		set_paused(true)
+
+
+func _leave() -> void:
+	get_tree().paused = false
+	Engine.time_scale = 1.0
 
 
 func _cycle_speed() -> void:

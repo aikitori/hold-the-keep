@@ -11,6 +11,7 @@ var level := 1
 var spec_id: StringName = &""
 var cell: Vector2i
 var invested := 0
+var target_mode: StringName = &"first"
 var game: Node  # Main
 var _cooldown := 0.0
 var _model: Node3D
@@ -122,6 +123,12 @@ func stat(key: String, fallback: Variant) -> Variant:
 	return Defs.spec(id, spec_id).get(key, Defs.TOWERS[id].get(key, fallback))
 
 
+## Nächste Zielwahl; "Flieger zuerst" nur, wenn der Turm beides trifft.
+func cycle_target() -> void:
+	var modes := Defs.TARGET_MODES.filter(func(m: StringName) -> bool: return m != &"air" or targets() == "both")
+	target_mode = modes[(modes.find(target_mode) + 1) % modes.size()]
+
+
 func can_upgrade() -> bool:
 	return Defs.upgrade_cost(id, level) > 0
 
@@ -206,7 +213,7 @@ func _ground_distance(enemy: Enemy) -> float:
 	return Vector2(enemy.position.x - position.x, enemy.position.z - position.z).length()
 
 
-## Ziele: Gegner in Reichweite, die der Burg am nächsten sind (passend zu Boden/Luft).
+## Ziele in Reichweite (passend zu Boden/Luft), sortiert nach der Zielwahl. Gleichstand: näher an der Burg.
 func _pick_targets(count: int) -> Array[Enemy]:
 	var r := reach()
 	var kind := targets()
@@ -216,5 +223,17 @@ func _pick_targets(count: int) -> Array[Enemy]:
 			continue
 		if _ground_distance(enemy) <= r:
 			inside.append(enemy)
-	inside.sort_custom(func(a: Enemy, b: Enemy) -> bool: return a.distance_left < b.distance_left)
+	var mode := target_mode
+	inside.sort_custom(func(a: Enemy, b: Enemy) -> bool:
+		match mode:
+			&"strong":
+				if a.hp != b.hp:
+					return a.hp > b.hp
+			&"weak":
+				if a.hp != b.hp:
+					return a.hp < b.hp
+			&"air":
+				if a.air != b.air:
+					return a.air
+		return a.distance_left < b.distance_left)
 	return inside.slice(0, count)

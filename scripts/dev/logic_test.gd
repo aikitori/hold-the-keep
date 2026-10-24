@@ -15,6 +15,10 @@ func _ready() -> void:
 	for id: StringName in Sfx.VOLUME:
 		_check(Sfx._streams[id] is AudioStream, "Klang %s geladen" % id)
 	Sfx.muted = true  # Wiedergaben, die beim Beenden noch laufen, meldet Godot als hängend.
+	Settings.file = "user://logic_test.cfg"
+	DirAccess.remove_absolute(Settings.file)
+	Settings.difficulty = &"normal"
+	_test_settings()
 	var map := MapData.load_map(&"vier_felder")
 	_check(map.spawn != Vector2i(-1, -1) and map.keep != Vector2i(-1, -1), "Karte hat Friedhof und Burg")
 	var board := Board.new(map)
@@ -70,6 +74,7 @@ func _ready() -> void:
 	_check(mixed.size() >= 3 and Defs.wave(12) == Defs.wave(12), "Welle 12 gemischt und immer gleich")
 	_check(Defs.upgrade_cost(&"archer", 3) == -1 and Defs.upgrade_cost(&"wall", 1) == -1, "Ausbau endet bei Stufe 3, Mauern nie")
 	await _play()
+	await _test_difficulty()
 	print("LOGIC-TEST ", "FEHLGESCHLAGEN" if _failed else "OK")
 	get_tree().quit(1 if _failed else 0)
 
@@ -99,6 +104,34 @@ func _test_maps() -> void:
 			"Welle 4 ist eine Luftwelle")
 	for id: StringName in Defs.SPECS:
 		_check((Defs.SPECS[id] as Array).size() == 2, "%s hat zwei Spezialisierungen" % id)
+
+
+## Leicht: mehr Gold und Leben, Gegner mit weniger Lebenspunkten.
+func _test_difficulty() -> void:
+	Settings.difficulty = &"easy"
+	var main: Main = load("res://scenes/main.tscn").instantiate()
+	add_child(main)
+	await get_tree().process_frame
+	var enemy := Enemy.new()
+	main.add_child(enemy)
+	enemy.setup(&"skeleton", 1, main, main.board)
+	_check(main.gold == 130 and main.lives == 30 and is_equal_approx(enemy.max_hp, Defs.ENEMIES[&"skeleton"]["hp"] * 0.8),
+			"Leicht: 130 Gold, 30 Leben, Gegner mit 80 % Leben")
+	main.queue_free()
+	await get_tree().process_frame
+	Settings.difficulty = &"normal"
+
+
+## Bestwerte: nur Verbesserungen zählen, je Schwierigkeit getrennt.
+func _test_settings() -> void:
+	_check(Settings.best(&"rundlauf")["wave"] == 0, "Ohne Spielstand kein Bestwert")
+	Settings.record(&"rundlauf", 7, false)
+	Settings.record(&"rundlauf", 3, false)
+	_check(Settings.best(&"rundlauf") == {"wave": 7, "won": false}, "Bestwert bleibt beim besseren Ergebnis")
+	Settings.record(&"rundlauf", 30, true)
+	_check(Settings.best(&"rundlauf")["won"] and Settings.best(&"rundlauf", &"hard")["wave"] == 0,
+			"Sieg gespeichert, andere Schwierigkeit getrennt")
+	DirAccess.remove_absolute(Settings.file)
 
 
 ## Ziehen mit einem Finger: der gegriffene Bodenpunkt bleibt unter dem Finger, auch in kleinen Schritten.
@@ -158,6 +191,7 @@ func _play() -> void:
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	add_child(main)
 	await get_tree().process_frame
+	_check(main.gold == Defs.DIFFICULTIES[&"normal"]["gold"] and main.lives == 20, "Normal: 90 Gold, 20 Leben")
 	_test_touch_drag(main)
 	main.gold = 2000
 	var built := 0

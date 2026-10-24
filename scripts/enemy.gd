@@ -37,7 +37,7 @@ func setup(enemy_kind: StringName, wave: int, main: Node, field: Board) -> void:
 	game = main
 	board = field
 	var def: Dictionary = Defs.ENEMIES[kind]
-	max_hp = def["hp"] * Defs.health_factor(wave)
+	max_hp = def["hp"] * Defs.health_factor(wave) * float(main.hp_factor)
 	hp = max_hp
 	speed = def["speed"]
 	gold = def["gold"] + wave / 6

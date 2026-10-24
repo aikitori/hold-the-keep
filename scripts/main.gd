@@ -13,8 +13,10 @@ var board: Board
 var rig := CameraRig.new()
 var hud := Hud.new()
 var enemies: Array[Enemy] = []
-var gold := Defs.START_GOLD
-var lives := Defs.START_LIVES
+var gold := 0
+var lives := 0
+## Faktor der Schwierigkeit auf die Lebenspunkte der Gegner.
+var hp_factor := 1.0
 var wave := 0
 var countdown := Defs.FIRST_WAVE_DELAY
 var game_over := false
@@ -37,6 +39,10 @@ var _pinch_distance := 0.0
 
 func _ready() -> void:
 	Engine.time_scale = 1.0
+	var level: Dictionary = Defs.DIFFICULTIES[Settings.difficulty]
+	gold = level["gold"]
+	lives = level["lives"]
+	hp_factor = level["hp"]
 	map = MapData.load_map(map_id)
 	board = Board.new(map)
 	board.changed.connect(_on_board_changed)
@@ -75,7 +81,7 @@ func _build_lighting() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52, -25, 0)
 	sun.light_energy = 1.0
-	sun.shadow_enabled = true
+	sun.shadow_enabled = not Settings.low_graphics
 	# Schatten müssen das ganze Bild abdecken (Kameraabstand plus Bildtiefe bei weitestem Zoom).
 	sun.directional_shadow_max_distance = CameraRig.DISTANCE + 60.0
 	sun.directional_shadow_blend_splits = true
@@ -292,6 +298,7 @@ func _process(delta: float) -> void:
 			_start_wave()
 	elif enemies.is_empty():
 		# Die Pause beginnt erst, wenn der letzte Gegner der Welle besiegt ist oder die Burg erreicht hat.
+		Settings.record(map_id, wave, false)
 		if wave >= Defs.WAVES:
 			_finish(true)
 		else:
@@ -353,6 +360,8 @@ func enemy_reached_keep(enemy: Enemy) -> void:
 func _finish(won: bool) -> void:
 	game_over = true
 	Engine.time_scale = 1.0
+	if won:
+		Settings.record(map_id, wave, true)
 	hud.show_end(won, wave)
 	Sfx.play(&"victory" if won else &"defeat")
 

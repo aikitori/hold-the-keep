@@ -10,6 +10,7 @@ const MARGIN := 16.0
 var _cards: Array[PanelContainer] = []
 var _column := VBoxContainer.new()
 var _grid := GridContainer.new()
+var _best_labels: Dictionary = {}  # Karte -> Label
 
 
 func _ready() -> void:
@@ -38,13 +39,17 @@ func _ready() -> void:
 	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tagline.custom_minimum_size.x = 420
 	column.add_child(tagline)
+	column.add_child(_options())
 	var grid := _grid
+	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	grid.add_theme_constant_override("h_separation", 16)
 	grid.add_theme_constant_override("v_separation", 16)
 	column.add_child(grid)
 	for id: StringName in MapData.ORDER:
 		_cards.append(_card(id))
 		grid.add_child(_cards[-1])
+	Settings.changed.connect(_show_best)
+	_show_best()
 	UiScale.changed.connect(_layout)
 	_column.minimum_size_changed.connect(_fit)
 	get_viewport().size_changed.connect(_fit)
@@ -66,6 +71,48 @@ func _fit() -> void:
 	_column.size = need
 	_column.scale = Vector2(fit, fit)
 	_column.position = (get_viewport_rect().size - need * fit) / 2.0
+
+
+## Schwierigkeit und Grafikstufe.
+func _options() -> Control:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	var label := Label.new()
+	label.text = "Schwierigkeit"
+	row.add_child(label)
+	var group := ButtonGroup.new()
+	for level: StringName in Defs.DIFFICULTY_ORDER:
+		var button := Button.new()
+		button.text = Defs.DIFFICULTIES[level]["name"]
+		button.toggle_mode = true
+		button.button_group = group
+		button.button_pressed = Settings.difficulty == level
+		button.custom_minimum_size = Vector2(96, 44)
+		button.pressed.connect(func() -> void:
+			Sfx.play(&"click")
+			Settings.set_difficulty(level))
+		row.add_child(button)
+	var gap := Control.new()
+	gap.custom_minimum_size.x = 24
+	row.add_child(gap)
+	var graphics := Button.new()
+	graphics.custom_minimum_size = Vector2(170, 44)
+	var show := func() -> void: graphics.text = "Grafik: niedrig" if Settings.low_graphics else "Grafik: hoch"
+	show.call()
+	graphics.pressed.connect(func() -> void:
+		Sfx.play(&"click")
+		Settings.set_low_graphics(not Settings.low_graphics)
+		show.call())
+	row.add_child(graphics)
+	return row
+
+
+func _show_best() -> void:
+	for id: StringName in _best_labels:
+		var best := Settings.best(id)
+		var label: Label = _best_labels[id]
+		label.text = "Gewonnen!" if best["won"] else "Bestwert: Welle %d" % best["wave"] if best["wave"] > 0 else "Noch nicht gespielt"
 
 
 func _card(id: StringName) -> PanelContainer:
@@ -97,6 +144,11 @@ func _card(id: StringName) -> PanelContainer:
 	facts.add_theme_font_size_override("font_size", 16)
 	facts.add_theme_color_override("font_color", Color("#c9b994"))
 	box.add_child(facts)
+	var best := Label.new()
+	best.add_theme_font_size_override("font_size", 18)
+	best.add_theme_color_override("font_color", Hud.GOLD)
+	box.add_child(best)
+	_best_labels[id] = best
 	var play := Button.new()
 	play.text = "Spielen"
 	play.custom_minimum_size.y = 48

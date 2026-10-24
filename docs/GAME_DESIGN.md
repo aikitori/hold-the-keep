@@ -8,7 +8,9 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 
 ## Ablauf
 
-- Start: 90 Gold, 20 Leben, 30 Wellen. Erste Welle nach 45 s, danach 25 s Pause, sobald der letzte Gegner einer
+- Schwierigkeit (im Menü): Leicht 130 Gold, 30 Leben, Gegner mit 80 % Leben; Normal 90 Gold, 20 Leben;
+  Schwer 70 Gold, 10 Leben, Gegner mit 125 % Leben.
+- Start (Normal): 90 Gold, 20 Leben, 30 Wellen. Erste Welle nach 45 s, danach 25 s Pause, sobald der letzte Gegner einer
   Welle besiegt ist oder die Burg erreicht hat. "Nächste Welle" startet sofort und gibt die halbe Restzeit in Sekunden als Gold.
 - Gegner, die die Burg erreichen, kosten 1 Leben, Bosse 5. Bei 0 Leben fällt die Burg.
 - Gold gibt es für jeden besiegten Gegner (Grundwert plus 1 je 6 Wellen).
@@ -115,6 +117,8 @@ Stelle im Bild ist; gleiche Klänge sind begrenzt (höchstens 2 bis 3 gleichzeit
 Eine Kachel je Karte mit Vorschau von oben (Gelände, Grundweg der Gegner, Friedhof S, Burg B und
 Kontrollpunkte), Beschreibung und Größe. Quer stehen alle Kacheln nebeneinander, im Hochformat zwei mal zwei.
 Das Menü scrollt nicht: passt es nicht auf den Bildschirm, wird es als Ganzes verkleinert.
+Darüber Schwierigkeit und Grafikstufe ("niedrig": ohne Schatten und Kantenglättung, für schwache Handys).
+Jede Kachel zeigt den Bestwert auf der gewählten Schwierigkeit (überstandene Wellen oder "Gewonnen!").
 
 ## Bedienung auf Touch-Geräten
 

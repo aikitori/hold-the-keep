@@ -2,8 +2,13 @@ class_name Defs
 extends RefCounted
 ## Spielwerte: Türme, Spezialisierungen, Gegner, Wellen. Reichweite in Feldern, Tempo in Feldern pro Sekunde.
 
-const START_GOLD := 90
-const START_LIVES := 20
+## Schwierigkeit: Startgold, Leben und Faktor auf die Lebenspunkte der Gegner.
+const DIFFICULTIES := {
+	&"easy": {"name": "Leicht", "gold": 130, "lives": 30, "hp": 0.8},
+	&"normal": {"name": "Normal", "gold": 90, "lives": 20, "hp": 1.0},
+	&"hard": {"name": "Schwer", "gold": 70, "lives": 10, "hp": 1.25},
+}
+const DIFFICULTY_ORDER: Array[StringName] = [&"easy", &"normal", &"hard"]
 const WAVES := 30
 const FIRST_WAVE_DELAY := 45.0
 const WAVE_BREAK := 25.0

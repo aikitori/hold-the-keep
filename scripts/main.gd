@@ -89,6 +89,7 @@ func _ready() -> void:
 		ability_wait[id] = 0.0
 	hud.pause_pressed.connect(func() -> void: set_paused(not get_tree().paused))
 	hud.toast("Baue Türme und lege ein Labyrinth: die Toten kommen vom Friedhof!")
+	Sfx.music(&"build")
 
 
 # --- Welt -------------------------------------------------------------------------
@@ -332,6 +333,7 @@ func _process(delta: float) -> void:
 		else:
 			countdown = Defs.WAVE_BREAK
 			_pay_interest()
+			Sfx.music(&"build")
 	hud.update_stats(gold, lives, wave, countdown if _queue.is_empty() else 0.0, _speed, endless)
 	if _selected != null:
 		hud.show_tower(_selected, gold)
@@ -348,6 +350,7 @@ func _start_wave() -> void:
 		label = "Luftangriff! Geister fliegen über das Labyrinth"
 	hud.toast("Welle %d: %s" % [wave, label])
 	Sfx.play(&"wave")
+	Sfx.music(&"battle")
 
 
 func _pay_interest() -> void:
@@ -365,6 +368,7 @@ func continue_endless() -> void:
 	game_over = false
 	countdown = Defs.WAVE_BREAK
 	hud.hide_end()
+	Sfx.music(&"build")
 	hud.toast("Endlosmodus: wie lange hält die Burg?")
 
 
@@ -479,6 +483,7 @@ func _finish(won: bool) -> void:
 	if won:
 		Settings.record(map_id, wave, true)
 	hud.show_end(won, wave)
+	Sfx.music(&"")
 	Sfx.play(&"victory" if won else &"defeat")
 
 

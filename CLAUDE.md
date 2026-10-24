@@ -26,6 +26,8 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
   Lautstärke je Klang in `VOLUME`, Ton aus in `user://settings.cfg`. Klänge neu erzeugen: Auswahl in
   `tools/import_sfx.py` (`SOUNDS`), Rohdateien in `tools/sfx_src/` (mit `.gdignore`), `python3 tools/import_sfx.py`
   (mit Paketordner als Argument werden die Rohdateien vorher kopiert).
+  Musik: `Sfx.music(&"build"|&"battle"|&"")`, Schleifen neu erzeugen mit `python3 tools/make_music.py` (reines
+  Python), Import mit QOA-Kompression und Schleife (`edit/loop_mode=2` in den `.import`-Dateien).
 - `scripts/settings.gd` (Autoload `Settings`): Schwierigkeit, Grafikstufe, Bestwerte je Karte und Schwierigkeit
   in `user://settings.cfg`. Der Test leitet `Settings.file` auf eine eigene Datei um.
 - `scripts/ui_scale.gd` (Autoload `UiScale`): vergrößert die Oberfläche auf Touch-Geräten, `narrow` im

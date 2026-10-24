@@ -138,6 +138,12 @@ Links am Rand, jede mit Abklingzeit (zu Beginn bereit, läuft nur, solange gespi
 "Pause" oben (oder Taste P) hält das Spiel an und zeigt Weiter, Neu starten und Zum Menü. Geht die App in den
 Hintergrund (Anruf, anderer Tab), pausiert das Spiel von selbst.
 
+## Musik
+
+Zwei Schleifen in D-Dorisch, erzeugt von `tools/make_music.py` (Laute, Flöte, Bordun): ruhig in der Bauzeit,
+mit Trommeln und Schellen während einer Welle. Beim Wechsel blendet die Musik über. Im Menü abschaltbar,
+"Ton aus" schaltet auch die Musik stumm.
+
 ## Menü
 
 Eine Kachel je Karte mit Vorschau von oben (Gelände, Grundweg der Gegner, Friedhof S, Burg B und
@@ -158,4 +164,4 @@ Mitte und verschieben zugleich, danach zieht der übrige Finger ohne Sprung weit
 ## Ideen für später
 
 - Mehr Karten.
-- Musik, Englisch als zweite Sprache, Spielstand speichern.
+- Englisch als zweite Sprache, laufendes Spiel speichern.

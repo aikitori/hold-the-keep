@@ -2,6 +2,8 @@ extends Node
 ## Klänge (Autoload "Sfx"): Sfx.play(&"click") oder Sfx.play_at(&"arrow", position) für Geräusche auf der
 ## Karte, die nur zu hören sind, wenn die Stelle im Bild ist. Häufige Klänge werden begrenzt, damit viele
 ## Türme nicht zu einem Dauerrauschen werden. Ton an/aus wird in user://settings.cfg gespeichert.
+## Musik: Sfx.music(&"build") / Sfx.music(&"battle") blendet über, Sfx.music(&"") blendet aus. Die Schleifen
+## erzeugt tools/make_music.py.
 
 const SETTINGS := "user://settings.cfg"
 const VOICES := 24
@@ -20,7 +22,15 @@ const MIN_GAP := 0.07
 ## Ohne Tonhöhen-Streuung (Musik und Oberfläche).
 const STEADY: Array[StringName] = [&"wave", &"victory", &"defeat", &"click", &"error"]
 
+const MUSIC := {&"build": preload("res://assets/audio/music_build.wav"), &"battle": preload("res://assets/audio/music_battle.wav")}
+const MUSIC_DB := -13.0
+const SILENT_DB := -40.0
+const FADE := 1.5
+
 var muted := false
+var music_on := true
+var _music: Array[AudioStreamPlayer] = []
+var _music_id: StringName = &""
 var _streams: Dictionary = {}
 var _players: Array[AudioStreamPlayer] = []
 var _last: Dictionary = {}
@@ -34,9 +44,14 @@ func _ready() -> void:
 		var player := AudioStreamPlayer.new()
 		add_child(player)
 		_players.append(player)
+	for i in 2:
+		var player := AudioStreamPlayer.new()
+		add_child(player)
+		_music.append(player)
 	var config := ConfigFile.new()
 	if config.load(SETTINGS) == OK:
 		muted = config.get_value("audio", "muted", false)
+		music_on = config.get_value("audio", "music", true)
 	_apply_mute()
 
 
@@ -71,9 +86,42 @@ func play_at(id: StringName, at: Vector3) -> void:
 	play(id)
 
 
+## Musik wechseln: der neue Titel blendet ein, der alte aus. Gleicher Titel läuft einfach weiter.
+func music(id: StringName) -> void:
+	if id == _music_id:
+		return
+	_music_id = id
+	_play_music()
+
+
+func set_music_on(value: bool) -> void:
+	music_on = value
+	var config := ConfigFile.new()
+	config.load(SETTINGS)
+	config.set_value("audio", "music", music_on)
+	config.save(SETTINGS)
+	_play_music()
+
+
+func _play_music() -> void:
+	var old := _music[0] if _music[0].playing else _music[1]
+	var fresh := _music[1] if old == _music[0] else _music[0]
+	if old.playing:
+		var out := create_tween()
+		out.tween_property(old, "volume_db", SILENT_DB, FADE)
+		out.tween_callback(old.stop)
+	if not music_on or muted or _music_id == &"":
+		return
+	fresh.stream = MUSIC[_music_id]
+	fresh.volume_db = SILENT_DB
+	fresh.play()
+	create_tween().tween_property(fresh, "volume_db", MUSIC_DB, FADE)
+
+
 func set_muted(value: bool) -> void:
 	muted = value
 	_apply_mute()
+	_play_music()
 	var config := ConfigFile.new()
 	config.load(SETTINGS)
 	config.set_value("audio", "muted", muted)

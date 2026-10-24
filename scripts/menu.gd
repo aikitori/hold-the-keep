@@ -15,6 +15,7 @@ var _best_labels: Dictionary = {}  # Karte -> Label
 
 func _ready() -> void:
 	Engine.time_scale = 1.0
+	Sfx.music(&"build")
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = Hud.make_theme()
 	var background := ColorRect.new()
@@ -105,6 +106,14 @@ func _options() -> Control:
 		Settings.set_low_graphics(not Settings.low_graphics)
 		show.call())
 	row.add_child(graphics)
+	var music := Button.new()
+	music.custom_minimum_size = Vector2(150, 44)
+	music.text = "Musik: an" if Sfx.music_on else "Musik: aus"
+	music.pressed.connect(func() -> void:
+		Sfx.play(&"click")
+		Sfx.set_music_on(not Sfx.music_on)
+		music.text = "Musik: an" if Sfx.music_on else "Musik: aus")
+	row.add_child(music)
 	return row
 
 

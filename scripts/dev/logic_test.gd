@@ -312,6 +312,8 @@ func _play() -> void:
 	add_child(main)
 	await get_tree().process_frame
 	_check(main.gold == Defs.DIFFICULTIES[&"normal"]["gold"] and main.lives == 20, "Normal: 90 Gold, 20 Leben")
+	_check(Sfx._music_id == &"build" and Sfx.MUSIC[&"battle"].loop_mode == AudioStreamWAV.LOOP_FORWARD,
+			"Baumusik gewählt, Musik läuft als Schleife")
 	_test_touch_drag(main)
 	main.set_paused(true)
 	var before: float = main.countdown

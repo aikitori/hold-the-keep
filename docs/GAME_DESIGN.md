@@ -57,11 +57,17 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 
 ## Bauen
 
-- Turm in der Bauleiste wählen, dann baut jeder Tipp oder Klick einen. Gedrückt halten und ziehen baut auf jedem
-  überstrichenen Feld (Massenbau, auch für Mauerreihen); Felder, die nicht gehen, werden übersprungen. Im Baumodus
-  verschieben zwei Finger, die rechte oder mittlere Maustaste die Karte. Ein Tipp auf einen Turm wählt ihn aus.
+- Turm in der Bauleiste wählen, dann baut jeder Klick einen. Mit Touch zeigt der erste Tipp nur die Vorschau,
+  ein zweiter Tipp auf dasselbe Feld baut (keine Versehen beim Verschieben der Karte). Gedrückt halten und ziehen
+  baut auf jedem überstrichenen Feld (Massenbau, auch für Mauerreihen); mit Touch nur, wenn der Finger auf der
+  Vorschau aufsetzt, sonst verschiebt Ziehen die Karte. Felder, die nicht gehen, werden übersprungen. Zwei Finger,
+  die rechte oder mittlere Maustaste verschieben die Karte. Ein Tipp auf einen Turm wählt ihn aus.
 - Ausgewählt wird, was man sieht: ein Tipp auf den Turmkörper trifft den Turm, auch wenn darunter am Boden schon
   das Feld dahinter liegt.
+- Türme, die im Bild vor der Bauvorschau stehen, werden durchsichtig und sind dann nicht wählbar, damit man auch
+  hinter hohen Türmen bauen kann.
+- Die Kamera dreht sich in Vierteldrehungen um die Bildmitte: Knopf oben, Taste R (mit Umschalt zurück) oder zwei
+  Finger drehen.
 
 - Gebaut wird auf Gras (begehbar, also Teil des Labyrinths) und auf Hochflächen (nicht begehbar, Türme dort
   ändern den Weg nie). Feste Wege, Kontrollpunkte und Wald sind tabu.
@@ -165,8 +171,8 @@ Links am Rand, jede mit Abklingzeit (zu Beginn bereit, läuft nur, solange gespi
 ## Tasten am Rechner
 
 1 bis 9 und 0 bauen (nochmal drücken wählt ab), Q W E Fähigkeiten, U ausbauen, Entf oder X abreißen, T Zielwahl,
-Leertaste nächste Welle, P Pause, Esc oder rechte Maustaste bricht ab (gibt es nichts abzubrechen, öffnet Esc
-die Pause, in der Pause geht es mit Esc weiter). Android-Zurück: im Spiel wie Esc, im Menü beendet es die App.
+R Kamera drehen (Umschalt+R zurück), Leertaste nächste Welle, P Pause, Esc oder rechte Maustaste bricht ab (gibt
+es nichts abzubrechen, öffnet Esc die Pause, in der Pause geht es mit Esc weiter). Android-Zurück: im Spiel wie Esc, im Menü beendet es die App.
 
 ## Spielstand
 

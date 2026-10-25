@@ -81,6 +81,16 @@ func _ready() -> void:
 	main.rig.camera.size = 8.0
 	await _frames(2)
 	get_viewport().get_texture().get_image().save_png("%s/%s_turm.png" % [folder, what])
+	# Bauvorschau hinter dem Turm: der Turm wird durchsichtig. Danach die Kamera eine Vierteldrehung weiter.
+	main.select_tower(null)
+	main._on_build_selected(&"archer")
+	main._move_ghost(special.cell - Vector2i(1, 1))
+	await _frames(2)
+	get_viewport().get_texture().get_image().save_png("%s/%s_verdeckt.png" % [folder, what])
+	main.rig.rotation.y = PI / 2.0
+	main._move_ghost(special.cell - Vector2i(1, 1))
+	await _frames(2)
+	get_viewport().get_texture().get_image().save_png("%s/%s_gedreht.png" % [folder, what])
 	Engine.time_scale = 1.0
 	get_tree().quit()
 

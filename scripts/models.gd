@@ -4,6 +4,7 @@ extends RefCounted
 
 static var _scenes: Dictionary = {}
 static var _meshes: Dictionary = {}
+static var _faded_materials: Dictionary = {}  # Material -> durchsichtige Kopie
 
 
 static func scene(key: String) -> PackedScene:
@@ -64,3 +65,27 @@ static func tint(root: Node3D, color: Color) -> void:
 	for child in root.find_children("*", "MeshInstance3D", true, false):
 		(child as MeshInstance3D).material_override = material
 		(child as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## Modell halb durchsichtig zeigen oder zurückstellen. Über material_override, weil die Durchsichtigkeit
+## je Instanz im Compatibility-Renderer nicht wirkt.
+static func fade(root: Node3D, on: bool) -> void:
+	for child in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := child as MeshInstance3D
+		if not on:
+			if mi.has_meta("unfaded"):
+				mi.material_override = mi.get_meta("unfaded")
+				mi.remove_meta("unfaded")
+			continue
+		if mi.has_meta("unfaded") or mi.mesh == null:
+			continue
+		var original := mi.material_override if mi.material_override != null else mi.get_active_material(0)
+		if not original is BaseMaterial3D:
+			continue
+		mi.set_meta("unfaded", mi.material_override)
+		if not _faded_materials.has(original):
+			var faded := (original as BaseMaterial3D).duplicate() as BaseMaterial3D
+			faded.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			faded.albedo_color.a *= 0.3
+			_faded_materials[original] = faded
+		mi.material_override = _faded_materials[original]

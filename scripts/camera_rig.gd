@@ -1,7 +1,8 @@
 class_name CameraRig
 extends Node3D
 ## Isometrische Kamera ohne Perspektive. Der Rig steht auf dem Boden, die Kamera schaut schräg von oben.
-## Verschieben per Ziehen (der gegriffene Bodenpunkt bleibt unter dem Finger), Zoomen per Mausrad oder zwei Fingern.
+## Verschieben per Ziehen (der gegriffene Bodenpunkt bleibt unter dem Finger), Zoomen per Mausrad oder zwei Fingern,
+## Drehen in Vierteldrehungen um die Bildmitte.
 
 const MIN_SIZE := 7.0
 const MAX_SIZE := 26.0
@@ -10,6 +11,8 @@ const DISTANCE := 25.0
 var camera := Camera3D.new()
 var bounds := Rect2(0, 0, 40, 26)
 var _anchor := Vector3.ZERO
+var _yaw := 0.0  # Ziel der Drehung, die Kamera folgt mit kurzer Animation
+var _turn: Tween
 
 
 func _ready() -> void:
@@ -36,6 +39,21 @@ func zoom(factor: float) -> void:
 	camera.size = clampf(camera.size * factor, MIN_SIZE, MAX_SIZE)
 
 
+## Um `steps` Vierteldrehungen drehen, `done` wird nach der Animation gerufen.
+func turn(steps: int, done := Callable()) -> void:
+	_yaw += steps * PI / 2.0
+	if _turn != null:
+		_turn.kill()
+	_turn = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_turn.tween_property(self, "rotation:y", _yaw, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if done.is_valid():
+		_turn.tween_callback(done)
+
+
+func turning() -> bool:
+	return _turn != null and _turn.is_running()
+
+
 ## Bodenpunkt unter `screen` festhalten (beim Aufsetzen eines Fingers).
 func grab(screen: Vector2) -> void:
 	_anchor = ground_point(screen, 0.0)
@@ -44,6 +62,9 @@ func grab(screen: Vector2) -> void:
 ## So verschieben, dass der festgehaltene Bodenpunkt unter `screen` liegt. Rechnet über denselben Strahl wie
 ## das Tippen und braucht weder `relative` noch einen Pixelmaßstab.
 func drag_to(screen: Vector2) -> void:
+	if turning():
+		_anchor = ground_point(screen, 0.0)  # während der Drehung nur mitführen, sonst springt die Karte
+		return
 	var offset := _anchor - ground_point(screen, 0.0)
 	position.x = clampf(position.x + offset.x, bounds.position.x, bounds.end.x)
 	position.z = clampf(position.z + offset.z, bounds.position.y, bounds.end.y)

@@ -40,7 +40,9 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
   in Einzelbilder umgerechnet (Autoload `FigureStage` als Platz im Szenenbaum), weil Skinning auf manchen
   Handy-Browsern unsichtbar bleibt. Headless bleibt das Originalmodell.
 - `scripts/path_view.gd`: Pfeilspur des Gegnerwegs, Vorschau beim Bauen über `Board.full_path_with`.
-- `scripts/camera_rig.gd`: isometrische Orthokamera (45°, 35,26° von oben), Verschieben und Zoomen.
+- `scripts/camera_rig.gd`: isometrische Orthokamera (45°, 35,26° von oben), Verschieben, Zoomen, Drehen in
+  Vierteldrehungen. Türme vor der Bauvorschau blendet `Main._fade_cover` aus (`Models.fade`, über
+  `material_override`, weil `GeometryInstance3D.transparency` im Compatibility-Renderer nicht wirkt).
 
 ## Inhalte
 

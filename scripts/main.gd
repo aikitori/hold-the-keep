@@ -44,6 +44,8 @@ var _speed := 1.0
 var _selected: Tower = null
 var _ghost: Node3D
 var _ghost_id: StringName = &""
+var _ghost_cell := Vector2i(-99, -99)  # Touch: erster Tipp zeigt die Vorschau, zweiter baut
+var _faded: Array[Tower] = []  # Türme, die die Bauvorschau verdecken
 var _ring := MeshInstance3D.new()
 var _path_view := PathView.new()
 var _down_pos := Vector2.ZERO
@@ -55,6 +57,8 @@ var _pan_button := false  # rechte oder mittlere Maustaste hält die Karte
 var _pan_moved := false
 var _touches: Dictionary = {}
 var _pinch_distance := 0.0
+var _twist_angle := 0.0  # zwei Finger drehen: Winkel seit der letzten Vierteldrehung
+var _touch_press := false
 
 
 func _ready() -> void:
@@ -100,6 +104,7 @@ func _ready() -> void:
 		get_tree().change_scene_to_file("res://scenes/menu.tscn"))
 	hud.endless_pressed.connect(continue_endless)
 	hud.ability_pressed.connect(use_ability)
+	hud.turn_pressed.connect(turn_camera)
 	for id: StringName in Defs.ABILITY_ORDER:
 		ability_wait[id] = 0.0
 	hud.pause_pressed.connect(func() -> void: set_paused(not get_tree().paused))
@@ -765,6 +770,8 @@ func _on_build_selected(id: StringName) -> void:
 		_ghost.queue_free()
 		_ghost = null
 	_ghost_id = id
+	_ghost_cell = Vector2i(-99, -99)
+	_fade_cover()
 	_ring.visible = false
 	_path_view.show_paths(board.full_paths())
 	if id == &"":
@@ -779,6 +786,7 @@ func _move_ghost(at: Vector2i) -> void:
 	if _ghost == null:
 		return
 	_ghost.visible = map.cell(at) != MapData.Cell.BLOCKED
+	_ghost_cell = at
 	_ghost.position = Board.world_of(at, Tower.HIGH - Tower.GROUND if map.cell(at) == MapData.Cell.HIGH else 0.0)
 	var ok: bool = board.check_build(at, walkers()) == Board.BuildCheck.OK and gold >= Defs.TOWERS[_ghost_id]["cost"]
 	Models.tint(_ghost, Color(0.4, 1.0, 0.5, 0.55) if ok else Color(1.0, 0.3, 0.25, 0.55))
@@ -788,6 +796,43 @@ func _move_ghost(at: Vector2i) -> void:
 		_path_view.show_paths(board.full_paths())
 	_show_ring(_ghost.position, Defs.tower_range(_ghost_id, 1))
 	_ring.visible = _ghost.visible and Defs.tower_range(_ghost_id, 1) > 0.0
+	_fade_cover()
+
+
+## Türme, die im Bild vor der Bauvorschau stehen, werden durchsichtig, damit man auch dahinter bauen kann.
+func _fade_cover() -> void:
+	var cover: Array[Tower] = []
+	if _ghost != null and _ghost.visible:
+		var camera := rig.camera
+		var forward := -camera.global_transform.basis.z
+		var foot := _ghost.global_position + Vector3(0, Tower.GROUND, 0)
+		var depth := forward.dot(foot)
+		var spots := [camera.unproject_position(foot), camera.unproject_position(foot + Vector3(0, 0.6, 0))]
+		for tower: Variant in board.towers.values():
+			if not tower is Tower or forward.dot((tower as Tower).global_position) >= depth - 0.1:
+				continue
+			for spot: Vector2 in spots:
+				if _covers(tower, spot, 1.3) >= 0.0:
+					cover.append(tower)
+					break
+	for tower in _faded:
+		if is_instance_valid(tower) and not tower in cover:
+			Models.fade(tower, false)
+	for tower in cover:
+		if not tower in _faded:
+			Models.fade(tower, true)
+	_faded = cover
+
+
+## Abstand der Bildschirmstelle zur Strecke Fuß-Spitze des Turms, kleiner als seine Breite im Bild (mal `slack`).
+func _covers(tower: Tower, screen: Vector2, slack := 1.0) -> float:
+	var camera := rig.camera
+	var foot: Vector3 = tower.global_position + Vector3(0, Tower.GROUND, 0)
+	var base := camera.unproject_position(foot)
+	var top := camera.unproject_position(foot + Vector3(0, tower.height(), 0))
+	var radius := base.distance_to(camera.unproject_position(foot + camera.global_transform.basis.x * 0.45))
+	var distance := Geometry2D.get_closest_point_to_segment(screen, base, top).distance_to(screen)
+	return distance if distance < radius * slack else -1.0
 
 
 func _cancel() -> void:
@@ -847,10 +892,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_touches[touch.index] = touch.position
 			if _touches.size() == 1:
 				_press(touch.position)
+				_touch_press = true
 			else:
 				_dragging = true  # zwei Finger: nie als Tipp werten, Massenbau endet
 				_build_drag = false
 				_pinch_distance = _finger_distance()
+				_twist_angle = _finger_angle()
 				rig.grab(_finger_center())
 		else:
 			_touches.erase(touch.index)
@@ -859,6 +906,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				# Der übrige Finger greift neu, sonst springt die Karte.
 				_pinch_distance = _finger_distance()
+				_twist_angle = _finger_angle()
 				rig.grab(_finger_center())
 	elif event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
@@ -870,6 +918,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _pinch_distance > 0.0 and distance > 0.0:
 				rig.zoom(_pinch_distance / distance)
 			_pinch_distance = distance
+			# Zwei Finger drehen: ab 40° springt die Kamera um eine Vierteldrehung.
+			var twist := wrapf(_finger_angle() - _twist_angle, -PI, PI)
+			if absf(twist) > deg_to_rad(40.0):
+				turn_camera(1 if twist > 0.0 else -1)
+				_twist_angle = _finger_angle()
 			rig.drag_to(_finger_center())
 		else:
 			_drag(drag.position)
@@ -884,6 +937,15 @@ func _finger_distance() -> float:
 	return (points[0] as Vector2).distance_to(points[1]) if points.size() >= 2 else 0.0
 
 
+func _finger_angle() -> float:
+	var points: Array = _touches.values()
+	return ((points[1] as Vector2) - (points[0] as Vector2)).angle() if points.size() >= 2 else 0.0
+
+
+func turn_camera(steps: int) -> void:
+	rig.turn(steps, _fade_cover)
+
+
 func _finger_center() -> Vector2:
 	var points: Array = _touches.values()
 	return ((points[0] as Vector2) + (points[1] as Vector2)) / 2.0 if points.size() >= 2 else points[0]
@@ -893,6 +955,7 @@ func _press(at: Vector2) -> void:
 	_pressed = true
 	_dragging = false
 	_build_drag = false
+	_touch_press = false
 	_down_pos = at
 	_last_build = Board.cell_of(rig.ground_point(at))
 	rig.grab(at)
@@ -902,7 +965,9 @@ func _drag(at: Vector2) -> void:
 	if not _dragging and at.distance_to(_down_pos) > DRAG_THRESHOLD:
 		_dragging = true
 		# Im Baumodus wird aus dem Ziehen ein Massenbau, der auf dem Startfeld beginnt.
-		_build_drag = _ghost_id != &"" and not game_over and not hud.blocks(_down_pos)
+		# Mit Touch nur, wenn der Finger auf der Vorschau aufsetzt, sonst verschiebt Ziehen die Karte.
+		_build_drag = _ghost_id != &"" and not game_over and not hud.blocks(_down_pos) \
+				and (not _touch_press or (_ghost.visible and _last_build == _ghost_cell))
 		if _build_drag:
 			_build_at(_last_build)
 	if not _dragging:
@@ -953,18 +1018,13 @@ func _release(at: Vector2, touch: bool) -> void:
 ## Turm, dessen sichtbarer Körper unter der Bildschirmstelle liegt. In der Schrägsicht ragt ein Turm über die
 ## Felder dahinter, deshalb zählt die Strecke vom Fuß bis zur Spitze im Bild, nicht das Bodenfeld.
 func tower_at(screen: Vector2) -> Tower:
-	var camera := rig.camera
 	var best: Tower = null
 	var best_distance := INF
 	for tower: Variant in board.towers.values():
-		if not tower is Tower:
+		if not tower is Tower or tower in _faded:
 			continue
-		var foot: Vector3 = tower.global_position + Vector3(0, Tower.GROUND, 0)
-		var base := camera.unproject_position(foot)
-		var top := camera.unproject_position(foot + Vector3(0, tower.height(), 0))
-		var radius := base.distance_to(camera.unproject_position(foot + Vector3(0.45, 0, -0.45)))
-		var distance := Geometry2D.get_closest_point_to_segment(screen, base, top).distance_to(screen)
-		if distance < radius and distance < best_distance:
+		var distance := _covers(tower, screen)
+		if distance >= 0.0 and distance < best_distance:
 			best = tower
 			best_distance = distance
 	return best
@@ -988,7 +1048,10 @@ func tap(at: Vector2, touch := false) -> void:
 			_on_build_selected(&"")
 			select_tower(tower)
 			return
-		# Ein Tipp baut (auch mit Touch): Fehlgriffe gibt Abreißen in derselben Bauzeit voll zurück.
+		# Mit Touch zeigt der erste Tipp die Vorschau, erst ein zweiter Tipp auf dasselbe Feld baut.
+		if touch and not (_ghost.visible and cell == _ghost_cell):
+			_move_ghost(cell)
+			return
 		if try_build(_ghost_id, cell) != null:
 			_move_ghost(cell)
 		return

@@ -1,7 +1,7 @@
 class_name Glyph
 extends Control
 ## Kleines Symbol, mit Vektoren gezeichnet (die Schrift hat nur Latein-1): Münze, Herz, Schädel, Sanduhr,
-## Zahnrad, Pause, Abspielen, Vorspulen, Schließen. Passt sich der Größe an, fängt keine Eingaben ab.
+## Zahnrad, Pause, Abspielen, Vorspulen, Schließen, Drehen. Passt sich der Größe an, fängt keine Eingaben ab.
 
 const OUTLINE := Color("#2b1d12")
 
@@ -74,3 +74,9 @@ func _draw() -> void:
 		"close":
 			draw_line(p.call(-0.6, -0.6), p.call(0.6, 0.6), color, maxf(2.0, s * 0.25), true)
 			draw_line(p.call(0.6, -0.6), p.call(-0.6, 0.6), color, maxf(2.0, s * 0.25), true)
+		"turn":
+			var width := maxf(2.0, s * 0.22)
+			draw_arc(c, s * 0.6, deg_to_rad(-60), deg_to_rad(210), 24, color, width, true)
+			var tip := c + Vector2.from_angle(deg_to_rad(-60)) * s * 0.6
+			draw_colored_polygon(PackedVector2Array([tip + Vector2(-0.38, -0.2) * s, tip + Vector2(0.3, -0.32) * s,
+					tip + Vector2(0.12, 0.38) * s]), color)

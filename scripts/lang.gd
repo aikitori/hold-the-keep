@@ -29,6 +29,7 @@ const EN := {
 	"Ton aus": "Sound off",
 	"Ton an": "Sound on",
 	"Pause": "Pause",
+	"Kamera drehen": "Rotate camera",
 	"Nächste Welle": "Next wave",
 	"%s\n%d Gold": "%s\n%d gold",
 	"Ziel wählen": "Pick target",

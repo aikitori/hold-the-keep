@@ -18,6 +18,7 @@ signal endless_pressed
 signal ability_pressed(id: StringName)
 signal target_pressed
 signal spec_pressed(spec_id: StringName)
+signal turn_pressed(steps: int)
 
 const FONT := preload("res://assets/fonts/MedievalSharp.ttf")
 const WOOD := Color("#3b2a1e")
@@ -267,6 +268,9 @@ func _build_top(root: Control) -> void:
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_top_row.add_child(spacer)
+	var turn_button := _icon_button("turn")
+	turn_button.tooltip_text = tr("Kamera drehen") + " (R)"
+	turn_button.pressed.connect(func() -> void: turn_pressed.emit(1))
 	_pause_button = _icon_button("pause")
 	_pause_button.tooltip_text = tr("Pause") + " (P)"
 	_pause_button.pressed.connect(func() -> void: pause_pressed.emit())
@@ -277,7 +281,7 @@ func _build_top(root: Control) -> void:
 	_gear_button = _icon_button("gear")
 	(_gear_button.get_meta("glyph") as Glyph).color = INK
 	_gear_button.pressed.connect(func() -> void: _gear_panel.visible = not _gear_panel.visible)
-	_top_buttons = [_pause_button, _speed_button, _next_button, _gear_button]
+	_top_buttons = [turn_button, _pause_button, _speed_button, _next_button, _gear_button]
 	for button: Button in _top_buttons:
 		_top_row.add_child(button)
 
@@ -618,7 +622,7 @@ func show_pause(on: bool) -> void:
 
 
 ## Tasten am Rechner: 1-9 und 0 bauen, Q W E Fähigkeiten, U ausbauen, Entf/X abreißen, T Zielwahl,
-## Leertaste nächste Welle, P Pause (Esc bricht ab, das erledigt Main).
+## Leertaste nächste Welle, R dreht die Kamera (mit Umschalt zurück), P Pause (Esc bricht ab, das erledigt Main).
 func _unhandled_key_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if not key.pressed or key.echo:
@@ -639,6 +643,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_U: upgrade_pressed.emit()
 		KEY_DELETE, KEY_X: sell_pressed.emit()
 		KEY_T: target_pressed.emit()
+		KEY_R: turn_pressed.emit(-1 if key.shift_pressed else 1)
 		KEY_Q, KEY_W, KEY_E:
 			ability_pressed.emit(Defs.ABILITY_ORDER["QWE".find(OS.get_keycode_string(key.keycode))])
 		_: return

@@ -408,12 +408,41 @@ func _test_mass_build(main: Main) -> void:
 	main._on_build_selected(&"wall")
 	var before: int = main.board.towers.size()
 	main._unhandled_input(_touch(0, screen.call(Vector2i(3, 3)), true))
+	main._unhandled_input(_touch(0, screen.call(Vector2i(3, 3)), false))
+	_check(main.board.towers.size() == before and main._ghost_cell == Vector2i(3, 3),
+			"Touch: erster Tipp im Baumodus zeigt nur die Vorschau")
+	var rig_at := main.rig.position
+	main._unhandled_input(_touch(0, screen.call(Vector2i(6, 6)), true))
+	main._unhandled_input(_drag_event(0, screen.call(Vector2i(6, 6)) + Vector2(0, 60)))
+	main._unhandled_input(_touch(0, screen.call(Vector2i(6, 6)) + Vector2(0, 60), false))
+	_check(main.board.towers.size() == before and main.rig.position != rig_at,
+			"Touch: Ziehen abseits der Vorschau verschiebt die Karte statt zu bauen")
+	main.rig.position = rig_at
+	main._unhandled_input(_touch(0, screen.call(Vector2i(3, 3)), true))
 	main._unhandled_input(_drag_event(0, screen.call(Vector2i(4, 3))))
 	main._unhandled_input(_drag_event(0, screen.call(Vector2i(8, 3))))  # Sprung: Lücke wird gefüllt
 	main._unhandled_input(_touch(0, screen.call(Vector2i(8, 3)), false))
 	var row := range(3, 9).filter(func(x: int) -> bool: return main.board.towers.has(Vector2i(x, 3)))
 	_check(main.board.towers.size() - before == 6 and row.size() == 6 and main.gold == 70,
 			"Massenbau: Ziehen baut eine lückenlose Reihe (%d Mauern)" % (main.board.towers.size() - before))
+	main.tap(screen.call(Vector2i(7, 5)), true)
+	main.tap(screen.call(Vector2i(7, 5)), true)
+	_check(main.board.towers.has(Vector2i(7, 5)), "Touch: zweiter Tipp auf dieselbe Stelle baut")
+	# Ein Turm vor der Vorschau (näher zur Kamera) wird durchsichtig und ist nicht wählbar, von hinten nicht.
+	var front: Tower = main.try_build(&"archer", Vector2i(5, 5))
+	main._move_ghost(Vector2i(4, 4))
+	var spot := camera.unproject_position(Board.world_of(Vector2i(4, 4), Tower.GROUND + 0.3))
+	_check(front in main._faded and main.tower_at(spot) == null, "Turm vor der Bauvorschau wird durchsichtig")
+	main.rig.turn(2)
+	main.rig.rotation.y = PI
+	main._move_ghost(Vector2i(4, 4))
+	_check(not front in main._faded, "Kamera gedreht: derselbe Turm steht dahinter und bleibt sichtbar")
+	main.rig.turn(-2)
+	main.rig.rotation.y = 0.0
+	main._move_ghost(Vector2i(4, 4))
+	main.select_tower(front)
+	main.sell_selected()
+	main._on_build_selected(&"wall")
 	var wall: Tower = main.board.towers[Vector2i(5, 3)]
 	main.tap(screen.call(Vector2i(5, 3)), true)
 	_check(main._selected == wall and main._ghost_id == &"", "Tipp auf einen Turm im Baumodus wählt ihn aus")

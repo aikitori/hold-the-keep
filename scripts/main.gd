@@ -1,11 +1,14 @@
 class_name Main
 extends Node3D
 ## Hauptszene: baut die Karte aus Kenney-Kacheln, steuert Wellen, Gold, Leben und die Eingabe.
-## Tippen oder Klicken baut, im Baumodus baut Ziehen eine Reihe
-## (Massenbau), sonst verschiebt Ziehen die Karte. Im Baumodus verschieben zwei Finger, rechte oder mittlere
-## Maustaste. Mausrad oder zwei Finger zoomen.
+## Eingabe wie in Strategiespielen: Maus: Linksklick baut oder wählt (danach endet der Baumodus, mit Umschalt
+## bleibt er), Ziehen im Baumodus baut eine Reihe, rechte oder mittlere Taste verschieben, Rechtsklick bricht ab,
+## Mausrad zoomt zum Zeiger. Touch: erster Tipp zeigt die Vorschau, zweiter baut, der Baumodus bleibt; ein Finger
+## verschiebt, zwei zoomen und drehen. Aus der Bauleiste lässt sich ein Turm direkt aufs Feld ziehen.
 
 const DRAG_THRESHOLD := 12.0
+## Touch: beim Ziehen aus der Bauleiste schwebt die Vorschau so weit über dem Finger, sonst verdeckt er sie.
+const DRAG_LIFT := 70.0
 ## Spielstände mit anderer Version werden verworfen (erhöhen, wenn sich `snapshot` ändert).
 const SAVE_VERSION := 1
 ## Karte für das nächste Spiel (setzt das Menü).
@@ -59,6 +62,8 @@ var _touches: Dictionary = {}
 var _pinch_distance := 0.0
 var _twist_angle := 0.0  # zwei Finger drehen: Winkel seit der letzten Vierteldrehung
 var _touch_press := false
+var _drag_built := 0  # Massenbau: so viele Türme hat dieses Ziehen gebaut
+var _hovered: Tower = null  # Maus über einem Turm: Reichweite zeigen
 
 
 func _ready() -> void:
@@ -105,6 +110,8 @@ func _ready() -> void:
 	hud.endless_pressed.connect(continue_endless)
 	hud.ability_pressed.connect(use_ability)
 	hud.turn_pressed.connect(turn_camera)
+	hud.build_dragged.connect(_on_build_dragged)
+	hud.build_dropped.connect(_on_build_dropped)
 	for id: StringName in Defs.ABILITY_ORDER:
 		ability_wait[id] = 0.0
 	hud.pause_pressed.connect(func() -> void: set_paused(not get_tree().paused))
@@ -715,6 +722,7 @@ func _refuse(message: String) -> void:
 
 func select_tower(tower: Tower) -> void:
 	_selected = tower
+	_hover(null)
 	hud.show_tower(tower, gold)
 	if tower != null:
 		_show_ring(tower.position, tower.reach())
@@ -764,6 +772,7 @@ func sell_selected() -> void:
 
 func _on_build_selected(id: StringName) -> void:
 	select_tower(null)
+	_hover(null)
 	if id != &"":
 		_aiming = &""
 	if _ghost != null:
@@ -835,13 +844,30 @@ func _covers(tower: Tower, screen: Vector2, slack := 1.0) -> float:
 	return distance if distance < radius * slack else -1.0
 
 
+## Baumodus beenden, auch in der Bauleiste.
+func _stop_building() -> void:
+	hud.clear_build()
+	_on_build_selected(&"")
+
+
+## Maus über einem Turm: Reichweite und Hand als Zeiger, wie bei einer Auswahl, nur ohne Turm-Karte.
+func _hover(tower: Tower) -> void:
+	if tower == _hovered:
+		return
+	_hovered = tower
+	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if tower != null else Input.CURSOR_ARROW)
+	if tower != null:
+		_show_ring(tower.position, tower.reach())
+	elif _selected == null and _ghost == null and _aiming == &"":
+		_ring.visible = false
+
+
 func _cancel() -> void:
 	if _aiming != &"":
 		_aiming = &""
 		_ring.visible = false
 	elif _ghost_id != &"":
-		hud.clear_build()
-		_on_build_selected(&"")
+		_stop_building()
 	elif _selected != null:
 		select_tower(null)
 	else:
@@ -851,14 +877,14 @@ func _cancel() -> void:
 # --- Eingabe ----------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		_cancel()
+	if event is InputEventKey and event.pressed:
+		_key(event as InputEventKey)
 	elif event is InputEventMouseButton and event.device != InputEvent.DEVICE_ID_EMULATION:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
-			rig.zoom(0.9)
+			rig.zoom_at(0.9, mb.position)
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
-			rig.zoom(1.1)
+			rig.zoom_at(1.1, mb.position)
 		elif mb.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
 			# Halten und ziehen verschiebt die Karte, ein Rechtsklick ohne Ziehen bricht ab.
 			if mb.pressed:
@@ -874,7 +900,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if mb.pressed:
 				_press(mb.position)
 			else:
-				_release(mb.position, false)
+				_release(mb.position, false, mb.shift_pressed)
 	elif event is InputEventMouseMotion and event.device != InputEvent.DEVICE_ID_EMULATION:
 		var mm := event as InputEventMouseMotion
 		if _pan_button:
@@ -886,8 +912,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			_show_ring(rig.ground_point(mm.position), Defs.ABILITIES[_aiming]["radius"])
 		elif _ghost != null:
 			_move_ghost(Board.cell_of(rig.ground_point(mm.position)))
+		elif _selected == null and not game_over:
+			var hovered := tower_at(mm.position)
+			var cell := Board.cell_of(rig.ground_point(mm.position))
+			if hovered == null and board.towers.get(cell) is Tower:
+				hovered = board.towers[cell]
+			_hover(null if hud.blocks(mm.position) else hovered)
 	elif event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
+		if not touch.pressed and not _touches.has(touch.index):
+			return  # Finger, der auf der Oberfläche aufgesetzt hat (etwa beim Ziehen aus der Bauleiste)
 		if touch.pressed:
 			_touches[touch.index] = touch.position
 			if _touches.size() == 1:
@@ -902,6 +936,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			_touches.erase(touch.index)
 			if _touches.is_empty():
+				if _dragging and not _build_drag and _touch_press:
+					rig.fling()
 				_release(touch.position, true)
 			else:
 				# Der übrige Finger greift neu, sonst springt die Karte.
@@ -927,9 +963,29 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			_drag(drag.position)
 	elif event is InputEventMagnifyGesture:
-		rig.zoom(1.0 / (event as InputEventMagnifyGesture).factor)
+		var magnify := event as InputEventMagnifyGesture
+		rig.zoom_at(1.0 / magnify.factor, magnify.position)
 	elif event is InputEventPanGesture:
 		rig.pan(-(event as InputEventPanGesture).delta * 8.0)
+
+
+## Tasten für Kamera und Abbruch, die übrigen Kürzel liegen in `Hud`. Q und E nach Lage auf der Tastatur.
+func _key(key: InputEventKey) -> void:
+	if key.keycode == KEY_ESCAPE:
+		_cancel()
+	elif key.echo:
+		return
+	elif key.physical_keycode in [KEY_Q, KEY_E]:
+		turn_camera(-1 if key.physical_keycode == KEY_Q else 1)
+	elif key.keycode in [KEY_HOME, KEY_H]:
+		rig.center_on(Board.world_of(map.keep))
+	elif key.keycode in [KEY_PLUS, KEY_KP_ADD, KEY_EQUAL]:
+		rig.zoom(0.85)
+	elif key.keycode in [KEY_MINUS, KEY_KP_SUBTRACT]:
+		rig.zoom(1.18)
+	else:
+		return
+	get_viewport().set_input_as_handled()
 
 
 func _finger_distance() -> float:
@@ -956,6 +1012,7 @@ func _press(at: Vector2) -> void:
 	_dragging = false
 	_build_drag = false
 	_touch_press = false
+	_drag_built = 0
 	_down_pos = at
 	_last_build = Board.cell_of(rig.ground_point(at))
 	rig.grab(at)
@@ -990,8 +1047,8 @@ func _build_at(cell: Vector2i) -> bool:
 	if gold < Defs.TOWERS[_ghost_id]["cost"]:
 		_refuse(tr("Zu wenig Gold"))
 		return false
-	if not board.towers.has(cell):
-		try_build(_ghost_id, cell, true)
+	if not board.towers.has(cell) and try_build(_ghost_id, cell, true) != null:
+		_drag_built += 1
 	_move_ghost(cell)
 	return true
 
@@ -1006,13 +1063,16 @@ static func _line(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 	return out
 
 
-func _release(at: Vector2, touch: bool) -> void:
+## keep: Umschalt gehalten, der Baumodus bleibt nach dem Bauen.
+func _release(at: Vector2, touch: bool, keep := false) -> void:
 	_pressed = false
+	if _build_drag and _drag_built > 0 and not touch and not keep:
+		_stop_building()
 	_build_drag = false
 	if _dragging or game_over or hud.blocks(at):
 		_dragging = false
 		return
-	tap(at, touch)
+	tap(at, touch, keep)
 
 
 ## Turm, dessen sichtbarer Körper unter der Bildschirmstelle liegt. In der Schrägsicht ragt ein Turm über die
@@ -1030,8 +1090,9 @@ func tower_at(screen: Vector2) -> Tower:
 	return best
 
 
-## Ein Tipp auf das Spielfeld: bauen (mit Gerät erst Vorschau), Turm wählen oder Auswahl aufheben.
-func tap(at: Vector2, touch := false) -> void:
+## Ein Tipp auf das Spielfeld: bauen (mit Touch erst Vorschau), Turm wählen oder Auswahl aufheben.
+## Mit der Maus endet der Baumodus nach dem Bauen, außer mit Umschalt (`keep`).
+func tap(at: Vector2, touch := false, keep := false) -> void:
 	var cell := Board.cell_of(rig.ground_point(at))
 	if _aiming != &"":
 		if touch and cell != _aim_cell:
@@ -1044,8 +1105,7 @@ func tap(at: Vector2, touch := false) -> void:
 		if board.towers.has(cell):
 			# Tipp auf einen Turm: auswählen statt Fehlermeldung, der Baumodus endet.
 			var tower: Variant = board.towers[cell]
-			hud.clear_build()
-			_on_build_selected(&"")
+			_stop_building()
 			select_tower(tower)
 			return
 		# Mit Touch zeigt der erste Tipp die Vorschau, erst ein zweiter Tipp auf dasselbe Feld baut.
@@ -1053,9 +1113,36 @@ func tap(at: Vector2, touch := false) -> void:
 			_move_ghost(cell)
 			return
 		if try_build(_ghost_id, cell) != null:
-			_move_ghost(cell)
+			if touch or keep:
+				_move_ghost(cell)
+			else:
+				_stop_building()
 		return
 	var picked := tower_at(at)
 	if picked == null and board.towers.get(cell) is Tower:
 		picked = board.towers[cell]
 	select_tower(picked)
+
+
+## Turm aus der Bauleiste aufs Feld ziehen: die Vorschau folgt (mit Touch über dem Finger).
+func _on_build_dragged(id: StringName, at: Vector2, touch: bool) -> void:
+	if game_over or _ghost_id != id:
+		return
+	if hud.blocks(at):
+		_ghost.visible = false
+		_ring.visible = false
+		_fade_cover()
+		return
+	_move_ghost(Board.cell_of(rig.ground_point(at - Vector2(0, DRAG_LIFT) if touch else at)))
+
+
+## Loslassen über dem Feld baut. Wie beim Klicken endet der Baumodus danach nur mit der Maus.
+func _on_build_dropped(id: StringName, at: Vector2, touch: bool, keep: bool) -> void:
+	if game_over or _ghost_id != id or hud.blocks(at):
+		return
+	var cell := Board.cell_of(rig.ground_point(at - Vector2(0, DRAG_LIFT) if touch else at))
+	if try_build(id, cell) != null:
+		if touch or keep:
+			_move_ghost(cell)
+		else:
+			_stop_building()

@@ -11,7 +11,9 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
 - `scenes/menu.tscn` (`scripts/menu.gd`): Kartenwahl, setzt `Main.map_id`. Hauptszene ist das Menü.
   Kartenvorschau gezeichnet in `scripts/map_preview.gd` (`MapPreview`).
 - `scenes/main.tscn` (`scripts/main.gd`, `class_name Main`): baut die Karte (Kacheln per MultiMesh), Wellen,
-  Gold, Leben, Eingabe (Maus und Touch getrennt, emulierte Mausereignisse werden ignoriert).
+  Gold, Leben, Eingabe (Maus und Touch getrennt, emulierte Mausereignisse werden ignoriert). Steuerung nach
+  Strategiespiel-Art: Maus-Klick baut einmal (Umschalt: weiter), Touch baut per Doppeltipp und bleibt im Baumodus.
+  Ziehen aus der Bauleiste meldet `Hud.build_dragged`/`build_dropped`.
 - `scripts/map_data.gd`: Karten als Text (`MAPS`, Reihenfolge im Menü `ORDER`). Zeichen siehe Kopfkommentar.
   Kontrollpunkte 1 bis 9 laufen die Gegner der Reihe nach ab, dann die Burg (`waypoints`).
 - `scripts/board.gd`: Wegfindung (AStarGrid2D, schräg nur ohne Ecken schneiden), Bauregeln (`check_build`:
@@ -40,8 +42,8 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
   in Einzelbilder umgerechnet (Autoload `FigureStage` als Platz im Szenenbaum), weil Skinning auf manchen
   Handy-Browsern unsichtbar bleibt. Headless bleibt das Originalmodell.
 - `scripts/path_view.gd`: Pfeilspur des Gegnerwegs, Vorschau beim Bauen über `Board.full_path_with`.
-- `scripts/camera_rig.gd`: isometrische Orthokamera (45°, 35,26° von oben), Verschieben, Zoomen, Drehen in
-  Vierteldrehungen. Türme vor der Bauvorschau blendet `Main._fade_cover` aus (`Models.fade`, über
+- `scripts/camera_rig.gd`: isometrische Orthokamera (45°, 35,26° von oben), Verschieben (Ziehen mit Nachgleiten,
+  WASD/Pfeile, Randscrollen), Zoomen zum Zeiger, Drehen in Vierteldrehungen. Türme vor der Bauvorschau blendet `Main._fade_cover` aus (`Models.fade`, über
   `material_override`, weil `GeometryInstance3D.transparency` im Compatibility-Renderer nicht wirkt).
 
 ## Inhalte
@@ -76,6 +78,8 @@ godot --headless res://scenes/dev/dps.tscn   # Schaden pro Sekunde und pro Gold 
 godot res://scenes/dev/shot.tscn -- <Ordner> <menu|hud|icon|gegner|vier_felder|rundlauf|schlangenpfad|weites_feld>
 ```
 
+Mit Fenster (`xvfb-run -a godot res://scenes/dev/logic_test.tscn`) prüft der Test zusätzlich echte Maus- und
+Touch-Ereignisse an der Oberfläche (headless kommen dort keine an).
 Ausgabe prüfen auf `LOGIC-TEST OK`, keine Zeilen mit `FAIL` oder `SCRIPT ERROR`. Die CI führt den Test aus.
 Der Balance-Bot baut nur neben den Weg (kein Labyrinth): auf Normal soll er knapp gewinnen oder spät verlieren.
 Einen Turm vergleichen: im dritten Argument einen Platz der Standardmischung tauschen (siehe `balance.gd`).

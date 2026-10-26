@@ -19,6 +19,9 @@ signal ability_pressed(id: StringName)
 signal target_pressed
 signal spec_pressed(spec_id: StringName)
 signal turn_pressed(steps: int)
+## Turm aus der Bauleiste aufs Feld ziehen (`at` in Bildschirmkoordinaten wie bei `blocks`).
+signal build_dragged(id: StringName, at: Vector2, touch: bool)
+signal build_dropped(id: StringName, at: Vector2, touch: bool, keep: bool)
 
 const FONT := preload("res://assets/fonts/MedievalSharp.ttf")
 const WOOD := Color("#3b2a1e")
@@ -30,6 +33,8 @@ const BRASS := Color("#a07a3a")
 const BLOOD := Color("#c0392b")
 ## Tasten für die Bauleiste: 1 bis 9, dann 0.
 const BUILD_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
+## Fähigkeiten nach Lage auf der Tastatur (unterste Reihe links, WASD und Q E gehören der Kamera).
+const ABILITY_KEYS := [KEY_Z, KEY_X, KEY_C]
 
 var main: Node
 var selected_build: StringName = &""
@@ -50,6 +55,9 @@ var _next_button: Button
 var _gear_button: Button
 var _gear_panel := PanelContainer.new()
 var _sound_button := Button.new()
+var _edge_button := Button.new()
+var _bar_drag: StringName = &""  # Turm, der gerade aus der Bauleiste gezogen wird
+var _bar_press := Vector2.ZERO
 var _music_button := Button.new()
 var _preview := Label.new()
 var _preview_wave := -1
@@ -269,7 +277,7 @@ func _build_top(root: Control) -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_top_row.add_child(spacer)
 	var turn_button := _icon_button("turn")
-	turn_button.tooltip_text = tr("Kamera drehen") + " (R)"
+	turn_button.tooltip_text = tr("Kamera drehen") + " (Q / E)"
 	turn_button.pressed.connect(func() -> void: turn_pressed.emit(1))
 	_pause_button = _icon_button("pause")
 	_pause_button.tooltip_text = tr("Pause") + " (P)"
@@ -298,8 +306,15 @@ func _build_gear(root: Control) -> void:
 	_gear_panel.add_child(box)
 	var show_sound := func() -> void: _sound_button.text = tr("Ton aus") if Sfx.muted else tr("Ton an")
 	var show_music := func() -> void: _music_button.text = tr("Musik: an") if Sfx.music_on else tr("Musik: aus")
+	var show_edge := func() -> void: _edge_button.text = tr("Randscrollen: an") if Settings.edge_scroll else tr("Randscrollen: aus")
 	show_sound.call()
 	show_music.call()
+	show_edge.call()
+	_edge_button.tooltip_text = tr("Maus am Fensterrand verschiebt die Karte")
+	_edge_button.visible = not UiScale.touch
+	_edge_button.pressed.connect(func() -> void:
+		Settings.set_edge_scroll(not Settings.edge_scroll)
+		show_edge.call())
 	_sound_button.pressed.connect(func() -> void:
 		Sfx.set_muted(not Sfx.muted)
 		show_sound.call())
@@ -309,7 +324,7 @@ func _build_gear(root: Control) -> void:
 	var menu := Button.new()
 	menu.text = tr("Zum Menü")
 	menu.pressed.connect(func() -> void: menu_pressed.emit())
-	for button: Button in [_sound_button, _music_button, menu]:
+	for button: Button in [_sound_button, _music_button, _edge_button, menu]:
 		button.custom_minimum_size = Vector2(180, 42)
 		box.add_child(button)
 
@@ -339,7 +354,8 @@ func _build_bottom(root: Control) -> void:
 		var button := Button.new()
 		button.toggle_mode = true
 		var key: int = Defs.BUILD_ORDER.find(id)
-		button.tooltip_text = tr(def["info"]) + ("\n" + tr("Taste %s") % OS.get_keycode_string(BUILD_KEYS[key]) if key < BUILD_KEYS.size() else "")
+		button.tooltip_text = tr(def["info"]) + ("\n" + tr("Taste %s") % OS.get_keycode_string(BUILD_KEYS[key]) if key < BUILD_KEYS.size() else "") \
+				+ "\n" + tr("Umschalt+Klick baut mehrere, oder aufs Feld ziehen")
 		var box := VBoxContainer.new()
 		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -366,6 +382,7 @@ func _build_bottom(root: Control) -> void:
 		button.set_meta("icon", icon)
 		button.set_meta("cost", cost)
 		button.toggled.connect(func(on: bool) -> void: _on_build_toggled(id, on))
+		button.gui_input.connect(func(event: InputEvent) -> void: _on_build_button_input(id, button, event))
 		button.mouse_entered.connect(func() -> void: _show_build_info(id))
 		button.mouse_exited.connect(func() -> void: _show_build_info(selected_build))
 		_build_grid.add_child(button)
@@ -421,7 +438,11 @@ func _build_abilities(root: Control) -> void:
 	panel.add_child(box)
 	for id: StringName in Defs.ABILITY_ORDER:
 		var button := Button.new()
-		button.tooltip_text = tr(Defs.ABILITIES[id]["info"]) + "\n" + tr("Taste %s") % "QWE"[_ability_buttons.size()]
+		var physical: Key = ABILITY_KEYS[_ability_buttons.size()]
+		# Beschriftung der Taste an dieser Stelle (QWERTZ: Y X C), das können nur die Rechner-Fenster.
+		if OS.has_feature("pc") and DisplayServer.get_name() != "headless":
+			physical = DisplayServer.keyboard_get_keycode_from_physical(physical)
+		button.tooltip_text = tr(Defs.ABILITIES[id]["info"]) + "\n" + tr("Taste %s") % OS.get_keycode_string(physical)
 		button.pressed.connect(func() -> void: ability_pressed.emit(id))
 		box.add_child(button)
 		_ability_buttons[id] = button
@@ -446,6 +467,31 @@ func _on_build_toggled(id: StringName, on: bool) -> void:
 		selected_build = &""
 	_show_build_info(selected_build)
 	build_selected.emit(selected_build)
+
+
+## Aus der Bauleiste ziehen: sobald der Zeiger die Leiste verlässt, wird der Turm gewählt und die Vorschau
+## folgt; Loslassen über dem Feld baut. Die Ereignisse bleiben beim gedrückten Knopf, auch außerhalb.
+func _on_build_button_input(id: StringName, button: Button, event: InputEvent) -> void:
+	var mouse := event as InputEventMouse
+	if mouse == null:
+		return
+	var at := button.get_global_transform() * mouse.position
+	var touch := mouse.device == InputEvent.DEVICE_ID_EMULATION
+	if mouse is InputEventMouseButton and (mouse as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		if (mouse as InputEventMouseButton).pressed:
+			_bar_press = at
+			_bar_drag = &""
+		elif _bar_drag == id:
+			_bar_drag = &""
+			build_dropped.emit(id, at, touch, mouse.shift_pressed)
+	elif mouse is InputEventMouseMotion and mouse.button_mask & MOUSE_BUTTON_MASK_LEFT:
+		if _bar_drag == &"" and not button.disabled and at.distance_to(_bar_press) > 16.0 \
+				and not _bottom_bar.get_global_rect().has_point(at):
+			_bar_drag = id
+			if selected_build != id:
+				button.button_pressed = true
+		if _bar_drag == id:
+			build_dragged.emit(id, at, touch)
 
 
 func clear_build() -> void:
@@ -621,8 +667,8 @@ func show_pause(on: bool) -> void:
 	(_pause_button.get_meta("glyph") as Glyph).set_kind("play" if on else "pause")
 
 
-## Tasten am Rechner: 1-9 und 0 bauen, Q W E Fähigkeiten, U ausbauen, Entf/X abreißen, T Zielwahl,
-## Leertaste nächste Welle, R dreht die Kamera (mit Umschalt zurück), P Pause (Esc bricht ab, das erledigt Main).
+## Tasten am Rechner: 1-9 und 0 bauen, Z X C Fähigkeiten (nach Lage), U ausbauen, Entf abreißen, T Zielwahl,
+## F Tempo, Leertaste nächste Welle, P Pause. Kamera und Esc erledigt Main.
 func _unhandled_key_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if not key.pressed or key.echo:
@@ -641,12 +687,14 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_P: pause_pressed.emit()
 		KEY_SPACE: next_wave_pressed.emit()
 		KEY_U: upgrade_pressed.emit()
-		KEY_DELETE, KEY_X: sell_pressed.emit()
+		KEY_DELETE, KEY_BACKSPACE: sell_pressed.emit()
 		KEY_T: target_pressed.emit()
-		KEY_R: turn_pressed.emit(-1 if key.shift_pressed else 1)
-		KEY_Q, KEY_W, KEY_E:
-			ability_pressed.emit(Defs.ABILITY_ORDER["QWE".find(OS.get_keycode_string(key.keycode))])
-		_: return
+		KEY_F: speed_pressed.emit()
+		_:
+			var ability := ABILITY_KEYS.find(key.physical_keycode)
+			if ability < 0 or ability >= Defs.ABILITY_ORDER.size():
+				return
+			ability_pressed.emit(Defs.ABILITY_ORDER[ability])
 	get_viewport().set_input_as_handled()
 
 

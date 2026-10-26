@@ -17,6 +17,8 @@ var narrow := false
 var compact := false
 ## Freizuhaltende Ränder in Oberflächen-Einheiten: links, oben, rechts, unten.
 var safe := Vector4.ZERO
+## Touchscreen vorhanden (oder vorgetäuscht): kein Randscrollen, größere Oberfläche.
+var touch := false
 ## Zum Ausprobieren am Rechner: tut so, als gäbe es einen Touchscreen (--touch-ui) oder links ein
 ## Kameraloch (--notch).
 var force_touch := false
@@ -35,7 +37,7 @@ func apply() -> void:
 	var size := Vector2(window.size)
 	if size.x <= 0.0 or size.y <= 0.0:
 		return
-	var touch := force_touch or DisplayServer.is_touchscreen_available()
+	touch = force_touch or DisplayServer.is_touchscreen_available()
 	# Grundmaßstab durch stretch "expand" bei 1280x720, darauf der Zusatzfaktor.
 	var base := minf(size.x / 1280.0, size.y / 720.0)
 	var wanted := minf(size.x, size.y) / (TOUCH_SHORT_SIDE if touch else DESKTOP_SHORT_SIDE)

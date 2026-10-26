@@ -57,17 +57,23 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 
 ## Bauen
 
-- Turm in der Bauleiste wählen, dann baut jeder Klick einen. Mit Touch zeigt der erste Tipp nur die Vorschau,
-  ein zweiter Tipp auf dasselbe Feld baut (keine Versehen beim Verschieben der Karte). Gedrückt halten und ziehen
+- Steuerung wie in Strategiespielen. Maus: Turm in der Bauleiste wählen, ein Linksklick baut ihn, danach endet
+  der Baumodus; mit gehaltener Umschalttaste bleibt er für weitere Türme. Rechtsklick oder Esc brechen ab.
+  Mit Touch zeigt der erste Tipp nur die Vorschau, ein zweiter Tipp auf dasselbe Feld baut, und der Baumodus
+  bleibt (Abbrechen mit dem Knopf in der Leiste oder Zurück). Gedrückt halten und ziehen
   baut auf jedem überstrichenen Feld (Massenbau, auch für Mauerreihen); mit Touch nur, wenn der Finger auf der
-  Vorschau aufsetzt, sonst verschiebt Ziehen die Karte. Felder, die nicht gehen, werden übersprungen. Zwei Finger,
-  die rechte oder mittlere Maustaste verschieben die Karte. Ein Tipp auf einen Turm wählt ihn aus.
+  Vorschau aufsetzt, sonst verschiebt Ziehen die Karte. Felder, die nicht gehen, werden übersprungen.
+- Einen Turm direkt aus der Bauleiste aufs Feld ziehen baut ihn beim Loslassen. Mit Touch schwebt die Vorschau
+  dabei etwas über dem Finger, damit er sie nicht verdeckt.
+- Ein Tipp auf einen Turm wählt ihn aus. Fährt die Maus über einen Turm, zeigt er seine Reichweite.
 - Ausgewählt wird, was man sieht: ein Tipp auf den Turmkörper trifft den Turm, auch wenn darunter am Boden schon
   das Feld dahinter liegt.
 - Türme, die im Bild vor der Bauvorschau stehen, werden durchsichtig und sind dann nicht wählbar, damit man auch
   hinter hohen Türmen bauen kann.
-- Die Kamera dreht sich in Vierteldrehungen um die Bildmitte: Knopf oben, Taste R (mit Umschalt zurück) oder zwei
-  Finger drehen.
+- Kamera, Maus: rechte oder mittlere Taste ziehen, WASD oder Pfeiltasten, Maus an den Fensterrand
+  (Randscrollen, im Zahnrad-Menü abschaltbar, im Browser nur im Vollbild). Das Mausrad zoomt zum Zeiger. Touch: ein Finger verschiebt, nach
+  einem Wisch gleitet die Karte nach (Aufsetzen hält sie an), zwei Finger zoomen und verschieben.
+- Die Kamera dreht sich in Vierteldrehungen um die Bildmitte: Knopf oben, Q und E oder zwei Finger drehen.
 
 - Gebaut wird auf Gras (begehbar, also Teil des Labyrinths) und auf Hochflächen (nicht begehbar, Türme dort
   ändern den Weg nie). Feste Wege, Kontrollpunkte und Wald sind tabu.
@@ -170,9 +176,20 @@ Links am Rand, jede mit Abklingzeit (zu Beginn bereit, läuft nur, solange gespi
 
 ## Tasten am Rechner
 
-1 bis 9 und 0 bauen (nochmal drücken wählt ab), Q W E Fähigkeiten, U ausbauen, Entf oder X abreißen, T Zielwahl,
-R Kamera drehen (Umschalt+R zurück), Leertaste nächste Welle, P Pause, Esc oder rechte Maustaste bricht ab (gibt
-es nichts abzubrechen, öffnet Esc die Pause, in der Pause geht es mit Esc weiter). Android-Zurück: im Spiel wie Esc, im Menü beendet es die App.
+| Taste | Wirkung |
+|---|---|
+| WASD, Pfeiltasten | Karte verschieben |
+| Q, E | Kamera drehen |
+| Mausrad, + und - | zoomen |
+| Pos1 oder H | zur Burg |
+| 1 bis 9, 0 | Turm wählen (nochmal drücken wählt ab) |
+| Umschalt + Klick | bauen, ohne den Baumodus zu verlassen |
+| Z X C (nach Lage, auf QWERTZ also Y X C) | Fähigkeiten |
+| U, T, Entf oder Rücktaste | ausbauen, Zielwahl, abreißen |
+| Leertaste, F, P | nächste Welle, Tempo, Pause |
+| Esc, rechte Maustaste | abbrechen (gibt es nichts abzubrechen, öffnet Esc die Pause, in der Pause geht es mit Esc weiter) |
+
+WASD, Q E und die Fähigkeiten gelten nach der Lage auf der Tastatur, sie liegen auf AZERTY also gleich. Android-Zurück: im Spiel wie Esc, im Menü beendet es die App.
 
 ## Spielstand
 
@@ -214,8 +231,9 @@ Die Bedienelemente halten den sicheren Bereich des Displays frei (Kameraloch, No
 kleinen Rand für runde Ecken; das Spielfeld selbst reicht bis zum Rand. Im Hochformat: zweite Zeile für die Knöpfe oben, Bauleiste in zwei Reihen, Menü zwei mal zwei,
 die Kamera-Zoomgröße gilt dann für die Breite.
 
-Ziehen hält die Karte fest: der Punkt unter dem Finger bleibt unter dem Finger. Zwei Finger zoomen um ihre
-Mitte und verschieben zugleich, danach zieht der übrige Finger ohne Sprung weiter.
+Ziehen hält die Karte fest: der Punkt unter dem Finger bleibt unter dem Finger, nach einem schnellen Wisch gleitet
+sie aus. Zwei Finger zoomen um ihre Mitte, verschieben und drehen zugleich, danach zieht der übrige Finger ohne
+Sprung weiter. Bauen mit Doppeltipp oder durch Ziehen aus der Bauleiste, siehe Bauen.
 
 ## Ideen für später
 

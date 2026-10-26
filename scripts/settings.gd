@@ -14,6 +14,8 @@ var difficulty: StringName = &"normal"
 var language := "de"
 ## Schatten und Kantenglättung aus, für schwache Handys.
 var low_graphics := false
+## Maus am Fensterrand verschiebt die Karte.
+var edge_scroll := true
 
 
 func _ready() -> void:
@@ -22,6 +24,7 @@ func _ready() -> void:
 	if not Defs.DIFFICULTIES.has(difficulty):
 		difficulty = &"normal"
 	low_graphics = config.get_value("graphics", "low", false)
+	edge_scroll = config.get_value("controls", "edge_scroll", true)
 	var system := "de" if OS.get_locale_language() == "de" else "en"
 	language = config.get_value("game", "language", system)
 	if not Lang.LANGUAGES.has(language):
@@ -47,6 +50,12 @@ func set_low_graphics(value: bool) -> void:
 	low_graphics = value
 	_store("graphics", "low", value)
 	apply_graphics()
+	changed.emit()
+
+
+func set_edge_scroll(value: bool) -> void:
+	edge_scroll = value
+	_store("controls", "edge_scroll", value)
 	changed.emit()
 
 

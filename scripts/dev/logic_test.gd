@@ -369,6 +369,14 @@ func _test_touch_drag(main: Main) -> void:
 	var start := Vector2(640, 360)
 	var grabbed := rig.ground_point(start, 0.0)
 	var before := rig.position
+	var pointer := Vector2(900, 250)
+	var under := rig.ground_point(pointer, 0.0)
+	var size_before: float = rig.camera.size
+	rig.zoom_at(0.8, pointer)
+	_check(rig.camera.size < size_before and rig.ground_point(pointer, 0.0).distance_to(under) < 0.01,
+			"Mausrad zoomt zum Zeiger, der Punkt darunter bleibt stehen")
+	rig.camera.size = size_before
+	rig.position = before
 	main._unhandled_input(_touch(0, start, true))
 	var at := start
 	for i in 40:
@@ -397,6 +405,21 @@ func _test_touch_drag(main: Main) -> void:
 	main._unhandled_input(_touch(0, at, false))
 	_check(main.board.towers.is_empty() and not main._dragging, "Ziehen baut nichts")
 	rig.camera.size = size
+	# Schneller Wisch: nach dem Loslassen gleitet die Karte weiter, ein neuer Finger hält sie an.
+	rig.position = before
+	main._unhandled_input(_touch(0, start, true))
+	for i in 5:
+		main._unhandled_input(_drag_event(0, start + Vector2(-20 * (i + 1), 0)))
+	var released := rig.position
+	main._unhandled_input(_touch(0, start + Vector2(-100, 0), false))
+	rig._process(0.1)
+	_check(rig.position.distance_to(released) > 0.1, "Nach einem Wisch gleitet die Karte nach")
+	main._unhandled_input(_touch(0, start, true))
+	main._unhandled_input(_touch(0, start, false))
+	var held := rig.position
+	rig._process(0.1)
+	_check(rig.position == held, "Aufsetzen hält die gleitende Karte an")
+	rig.position = before
 
 
 ## Massenbau: im Baumodus baut Ziehen eine Reihe. Tipp auf den Turmkörper wählt den Turm, auch im Baumodus.
@@ -428,6 +451,23 @@ func _test_mass_build(main: Main) -> void:
 	main.tap(screen.call(Vector2i(7, 5)), true)
 	main.tap(screen.call(Vector2i(7, 5)), true)
 	_check(main.board.towers.has(Vector2i(7, 5)), "Touch: zweiter Tipp auf dieselbe Stelle baut")
+	# Maus wie in Strategiespielen: ein Klick baut und beendet den Baumodus, mit Umschalt bleibt er.
+	main.tap(screen.call(Vector2i(6, 6)), false, true)
+	_check(main.board.towers.has(Vector2i(6, 6)) and main._ghost_id == &"wall", "Maus: Umschalt+Klick baut, der Baumodus bleibt")
+	main.tap(screen.call(Vector2i(7, 6)))
+	_check(main.board.towers.has(Vector2i(7, 6)) and main._ghost_id == &"" and main.hud.selected_build == &"",
+			"Maus: Klick baut und beendet den Baumodus")
+	# Aus der Bauleiste aufs Feld ziehen: mit Touch schwebt die Vorschau über dem Finger, Loslassen baut.
+	main._on_build_selected(&"wall")
+	var drop: Vector2 = screen.call(Vector2i(8, 6)) + Vector2(0, Main.DRAG_LIFT)
+	main._on_build_dragged(&"wall", drop, true)
+	_check(main._ghost_cell == Vector2i(8, 6), "Ziehen aus der Bauleiste: Vorschau über dem Finger")
+	main._on_build_dropped(&"wall", drop, true, false)
+	_check(main.board.towers.has(Vector2i(8, 6)) and main._ghost_id == &"wall", "Touch: Loslassen über dem Feld baut, Baumodus bleibt")
+	for cell: Vector2i in [Vector2i(6, 6), Vector2i(7, 6), Vector2i(8, 6)]:
+		main.select_tower(main.board.towers[cell])
+		main.sell_selected()
+	main._on_build_selected(&"wall")
 	# Ein Turm vor der Vorschau (näher zur Kamera) wird durchsichtig und ist nicht wählbar, von hinten nicht.
 	var front: Tower = main.try_build(&"archer", Vector2i(5, 5))
 	main._move_ghost(Vector2i(4, 4))
@@ -458,6 +498,68 @@ func _test_mass_build(main: Main) -> void:
 			main.select_tower(main.board.towers[cell])
 			main.sell_selected()
 	main.gold = 90
+
+
+## Echte Mausereignisse: vom Mauer-Knopf aufs Feld ziehen und loslassen baut. Braucht ein Fenster (headless
+## kommen keine Ereignisse bei der Oberfläche an): `xvfb-run godot res://scenes/dev/logic_test.tscn`.
+func _test_bar_drag(main: Main) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var button: Button = main.hud._build_buttons[&"wall"]
+	var cell := Vector2i(6, 8)
+	var camera_at := main.rig.position
+	main.rig.position = Board.world_of(cell)
+	var target := main.rig.camera.unproject_position(Board.world_of(cell, Tower.GROUND))
+	if main.board.check_build(cell, main.walkers()) != Board.BuildCheck.OK:
+		_check(false, "Ziehen aus der Bauleiste: Feld %s ist nicht frei" % cell)
+		main.rig.position = camera_at
+		return
+	main.gold += 10
+	var start := button.get_global_rect().get_center()
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = start
+	press.global_position = start
+	Input.parse_input_event(press)
+	Input.flush_buffered_events()
+	for i in 6:
+		var motion := InputEventMouseMotion.new()
+		motion.button_mask = MOUSE_BUTTON_MASK_LEFT
+		motion.position = start.lerp(target, (i + 1) / 6.0)
+		motion.global_position = motion.position
+		Input.parse_input_event(motion)
+	Input.flush_buffered_events()
+	var moved := main._ghost_id == &"wall" and main._ghost_cell == cell
+	var release := press.duplicate() as InputEventMouseButton
+	release.pressed = false
+	release.position = target
+	release.global_position = target
+	Input.parse_input_event(release)
+	Input.flush_buffered_events()
+	await get_tree().process_frame
+	_check(moved and main.board.towers.has(cell) and main._ghost_id == &"" and main.hud.selected_build == &"",
+			"Maus: Turm aus der Bauleiste aufs Feld ziehen baut ihn (Vorschau folgte: %s)" % moved)
+	if main.board.towers.has(cell):
+		main.select_tower(main.board.towers[cell])
+		main.sell_selected()
+	# Dasselbe mit dem Finger: die Vorschau schwebt über ihm, der Baumodus bleibt, es wird nur einmal gebaut.
+	var finger := target + Vector2(0, Main.DRAG_LIFT)
+	var count := main.board.towers.size()
+	Input.parse_input_event(_touch(0, start, true))
+	for i in 6:
+		Input.parse_input_event(_drag_event(0, start.lerp(finger, (i + 1) / 6.0)))
+	Input.parse_input_event(_touch(0, finger, false))
+	Input.flush_buffered_events()
+	await get_tree().process_frame
+	_check(main.board.towers.has(cell) and main.board.towers.size() == count + 1 and main._ghost_id == &"wall",
+			"Touch: Turm aus der Bauleiste aufs Feld ziehen baut genau einen, der Baumodus bleibt")
+	if main.board.towers.has(cell):
+		main.select_tower(main.board.towers[cell])
+		main.sell_selected()
+	main._stop_building()
+	main.gold -= 10
+	main.rig.position = camera_at
 
 
 static func _touch(index: int, at: Vector2, pressed: bool) -> InputEventScreenTouch:
@@ -518,6 +620,30 @@ func _play() -> void:
 	var picked: StringName = main.hud.selected_build
 	main.hud._unhandled_key_input(key)
 	_check(picked == Defs.BUILD_ORDER[1] and main.hud.selected_build == &"", "Taste 2 wählt den zweiten Turm und wieder ab")
+	var turn_key := InputEventKey.new()
+	turn_key.pressed = true
+	turn_key.keycode = KEY_E
+	turn_key.physical_keycode = KEY_E
+	var yaw: float = main.rig._yaw
+	main.hud._unhandled_key_input(turn_key)
+	main._unhandled_input(turn_key)
+	_check(main.rig._yaw > yaw, "Taste E dreht die Kamera")
+	main.rig._turn.kill()
+	main.rig._yaw = yaw
+	main.rig.rotation.y = yaw
+	var pan_key := InputEventKey.new()
+	pan_key.pressed = true
+	pan_key.physical_keycode = KEY_D
+	Input.parse_input_event(pan_key)
+	Input.flush_buffered_events()
+	var from: Vector3 = main.rig.position
+	main.rig._process(0.1)
+	pan_key.pressed = false
+	Input.parse_input_event(pan_key)
+	Input.flush_buffered_events()
+	_check(main.rig.position != from, "Taste D verschiebt die Karte")
+	main.rig.position = from
+	await _test_bar_drag(main)
 	await _test_abilities(main)
 	await _test_new_enemies(main)
 	await _test_new_towers(main)

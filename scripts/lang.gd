@@ -190,6 +190,8 @@ const EN := {
 	"Schildträger": "Shield bearer",
 	"Seuchenzombie": "Plague zombie",
 	"Nekromant": "Necromancer",
+	"Berserker": "Berserker",
+	"Knochenriese": "Bone giant",
 	"Geist": "Ghost",
 	"Irrlicht": "Wisp",
 	"Vampir": "Vampire",
@@ -205,6 +207,9 @@ const EN := {
 	"schützt andere": "shields others",
 	"zerfällt": "splits",
 	"ruft Skelette": "summons skeletons",
+	"rast bei halbem Leben": "rages at half health",
+	"nicht zu bremsen": "cannot be slowed",
+	"%s · %d / %d Leben": "%s · %d / %d health",
 	"%s · %d Gegner": "%s · %d enemies",
 	# Spielstand
 	"Weiterspielen: %s, Welle %d (%s)": "Continue: %s, wave %d (%s)",
@@ -214,6 +219,8 @@ const EN := {
 	"Bester Turm: %s (Stufe %d) mit %d Siegen": "Best tower: %s (level %d) with %d kills",
 	"Besiegt: %d": "Kills: %d",
 	"Taste %s": "Key %s",
+	"Umschalt+%s": "Shift+%s",
+	"Hochfläche: +%.1f Reichweite": "High ground: +%.1f range",
 	# Karten
 	"Einsteiger": "Beginner",
 	"Mittel": "Medium",

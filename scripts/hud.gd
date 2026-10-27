@@ -31,7 +31,7 @@ const INK := Color("#2b1d12")
 const GOLD := Color("#f2c14e")
 const BRASS := Color("#a07a3a")
 const BLOOD := Color("#c0392b")
-## Tasten für die Bauleiste: 1 bis 9, dann 0.
+## Tasten für die Bauleiste: 1 bis 9, dann 0. Ab dem elften Turm mit Umschalt: Umschalt+1 ist der elfte.
 const BUILD_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
 ## Fähigkeiten nach Lage auf der Tastatur (unterste Reihe links, WASD und Q E gehören der Kamera).
 const ABILITY_KEYS := [KEY_Z, KEY_X, KEY_C]
@@ -354,7 +354,10 @@ func _build_bottom(root: Control) -> void:
 		var button := Button.new()
 		button.toggle_mode = true
 		var key: int = Defs.BUILD_ORDER.find(id)
-		button.tooltip_text = tr(def["info"]) + ("\n" + tr("Taste %s") % OS.get_keycode_string(BUILD_KEYS[key]) if key < BUILD_KEYS.size() else "") \
+		var key_name := OS.get_keycode_string(BUILD_KEYS[key % BUILD_KEYS.size()])
+		if key >= BUILD_KEYS.size():
+			key_name = tr("Umschalt+%s") % key_name
+		button.tooltip_text = tr(def["info"]) + "\n" + tr("Taste %s") % key_name \
 				+ "\n" + tr("Umschalt+Klick baut mehrere, oder aufs Feld ziehen")
 		var box := VBoxContainer.new()
 		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -553,6 +556,8 @@ func show_tower(tower: Tower, gold: int) -> void:
 	if def["damage"] > 0:
 		lines.append(tr("Schaden %d · Reichweite %.1f") % [roundi(tower.damage()), tower.reach()])
 		lines.append(tr("Schüsse pro Sekunde %.1f") % (1.0 / tower.cooldown()))
+		if tower.high:
+			lines.append(tr("Hochfläche: +%.1f Reichweite") % Defs.HIGH_RANGE)
 		lines.append(tr({"ground": "Trifft Bodengegner", "air": "Trifft nur Fliegende", "both": "Trifft Boden und Luft"}[tower.targets()]))
 		if tower.kills > 0:
 			lines.append(tr("Besiegt: %d") % tower.kills)
@@ -674,6 +679,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if not key.pressed or key.echo:
 		return
 	var number := BUILD_KEYS.find(key.keycode)
+	if number >= 0 and key.shift_pressed:
+		number += BUILD_KEYS.size()
 	if number >= 0 and number < Defs.BUILD_ORDER.size():
 		var button: Button = _build_buttons[Defs.BUILD_ORDER[number]]
 		if not button.disabled or button.button_pressed:

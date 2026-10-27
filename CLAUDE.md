@@ -22,6 +22,7 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
   (Varianten derselben Figur über `tint`, `size`, `armor`, `regen`, `pack`), Wellen (`wave`, gemischt ab Welle 6).
 - `scripts/tower.gd`, `enemy.gd`, `projectile.gd`: Türme (Modell aus Teilen oder Figur), Gegner (Abschnitt für
   Abschnitt, Fliegende auf fester Flugroute), Geschosse (Pfeil, Bolzen, Fels im Bogen, Magie, Feuer, Kettenblitz).
+  Geschosse auf ein Ziel melden ihren Schaden an (`Enemy.incoming`), Türme nehmen sicher fallende Gegner zuletzt.
 - `scripts/hud.gd`: Oberfläche im Code gebaut (Holz mit Messingrand, Pergamentknöpfe, `Hud.make_theme()`),
   Turmbilder per SubViewport, Turm-Karte neben dem Turm, Lebensbalken als 2D-Overlay. Symbole zeichnet
   `scripts/glyph.gd` (`Glyph.make("coin")`) als Vektoren, weil die Schrift nur Latein-1 kann.

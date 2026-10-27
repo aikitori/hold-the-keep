@@ -15,6 +15,8 @@ var target_mode: StringName = &"first"
 var kills := 0
 ## In derselben Bauzeit gebaut und noch nie geschossen: Abriss gibt alles zurück.
 var refundable := true
+## Steht auf der Hochfläche: schießende Türme reichen weiter.
+var high := false
 var game: Node  # Main
 var _cooldown := 0.0
 var _model: Node3D
@@ -27,6 +29,7 @@ func setup(tower_id: StringName, at: Vector2i, main: Node, base_height := GROUND
 	cell = at
 	game = main
 	invested = Defs.TOWERS[id]["cost"]
+	high = base_height > GROUND
 	position = Board.world_of(at, base_height - GROUND)
 	_build_model()
 
@@ -148,7 +151,12 @@ func damage() -> float:
 
 
 func reach() -> float:
-	return Defs.tower_range(id, level, spec_id)
+	return Defs.tower_range(id, level, spec_id) + high_bonus(id, high)
+
+
+## Reichweite durch die Hochfläche (nur schießende Türme).
+static func high_bonus(tower_id: StringName, on_high: bool) -> float:
+	return Defs.HIGH_RANGE if on_high and Defs.TOWERS[tower_id]["damage"] > 0 else 0.0
 
 
 func cooldown() -> float:
@@ -219,7 +227,7 @@ func _process(delta: float) -> void:
 	var hit := {
 		"damage": damage(), "splash": stat("splash", 0.0), "slow": stat("slow", 0.0),
 		"slow_time": stat("slow_time", 1.6), "burn": stat("burn", 0.0), "chain": int(stat("chain", 0)),
-		"poison": stat("poison", 0.0), "stacks": int(stat("stacks", 3)), "source": self,
+		"poison": stat("poison", 0.0), "stacks": int(stat("stacks", 3)), "source": self, "targets": targets(),
 	}
 	Sfx.play_at(_shot_sound(def["projectile"], hit), global_position)
 	if def["projectile"] == "melee":
@@ -261,27 +269,51 @@ func _ground_distance(enemy: Enemy) -> float:
 	return Vector2(enemy.position.x - position.x, enemy.position.z - position.z).length()
 
 
-## Ziele in Reichweite (passend zu Boden/Luft), sortiert nach der Zielwahl. Gleichstand: näher an der Burg.
+## Ziele in Reichweite (passend zu Boden/Luft), sortiert nach der Zielwahl. Gegner, die schon fliegende
+## Geschosse sicher erledigen, kommen zuletzt dran, damit kein Schuss verpufft.
 func _pick_targets(count: int) -> Array[Enemy]:
 	var r := reach()
 	var kind := targets()
-	var inside: Array[Enemy] = []
+	var open: Array[Enemy] = []
+	var doomed: Array[Enemy] = []
 	for enemy: Enemy in game.enemies:
 		if not enemy.alive or (enemy.air and kind == "ground") or (not enemy.air and kind == "air"):
 			continue
 		if _ground_distance(enemy) <= r:
-			inside.append(enemy)
-	var mode := target_mode
-	inside.sort_custom(func(a: Enemy, b: Enemy) -> bool:
-		match mode:
-			&"strong":
-				if a.hp != b.hp:
-					return a.hp > b.hp
-			&"weak":
-				if a.hp != b.hp:
-					return a.hp < b.hp
-			&"air":
-				if a.air != b.air:
-					return a.air
-		return a.distance_left < b.distance_left)
-	return inside.slice(0, count)
+			(doomed if enemy.incoming >= enemy.hp else open).append(enemy)
+	if count == 1:
+		# Häufigster Fall, jedes Bild für jeden Turm: nur das beste suchen statt sortieren.
+		var best := _best(open)
+		if best == null:
+			best = _best(doomed)
+		var one: Array[Enemy] = []
+		if best != null:
+			one.append(best)
+		return one
+	open.sort_custom(_before)
+	doomed.sort_custom(_before)
+	open.append_array(doomed)
+	return open.slice(0, count)
+
+
+func _best(list: Array[Enemy]) -> Enemy:
+	var best: Enemy = null
+	for enemy in list:
+		if best == null or _before(enemy, best):
+			best = enemy
+	return best
+
+
+## Reihenfolge nach der Zielwahl. Gleichstand: näher an der Burg.
+func _before(a: Enemy, b: Enemy) -> bool:
+	match target_mode:
+		&"strong":
+			if a.hp != b.hp:
+				return a.hp > b.hp
+		&"weak":
+			if a.hp != b.hp:
+				return a.hp < b.hp
+		&"air":
+			if a.air != b.air:
+				return a.air
+	return a.distance_left < b.distance_left

@@ -44,7 +44,9 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
   | Schildträger | 16 | Gegner im Umkreis von 1,5 Feldern erhalten Rüstung 3 (blau, mit Schild) |
   | Orkhäuptling | 17 | groß, zäh, Rüstung 4 (rot) |
   | Seuchenzombie | 18 | zerfällt beim Tod in drei Knochenwichte (gelb) |
+  | Berserker | 19 | rast unter halbem Leben: 1,7-mal so schnell und rot (orange) |
   | Nekromant | 21 | ruft alle 5 s zwei Skelette, die kein Gold geben (lila) |
+  | Knochenriese | 23 | großes Skelett, zäh, lässt sich nicht verlangsamen (Magier, Frost, Glocke) |
 
 - Rüstung zieht von jedem Treffer ab, höchstens 75 %. Magie und Feuer gehen durch. Gegen Rüstung helfen
   schwere Treffer (Balliste, Katapult) oder der Magierturm.
@@ -66,6 +68,7 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 - Einen Turm direkt aus der Bauleiste aufs Feld ziehen baut ihn beim Loslassen. Mit Touch schwebt die Vorschau
   dabei etwas über dem Finger, damit er sie nicht verdeckt.
 - Ein Tipp auf einen Turm wählt ihn aus. Fährt die Maus über einen Turm, zeigt er seine Reichweite.
+- Ein Tipp auf einen Gegner zeigt Name, Leben und Besonderheiten.
 - Ausgewählt wird, was man sieht: ein Tipp auf den Turmkörper trifft den Turm, auch wenn darunter am Boden schon
   das Feld dahinter liegt.
 - Türme, die im Bild vor der Bauvorschau stehen, werden durchsichtig und sind dann nicht wählbar, damit man auch
@@ -76,7 +79,8 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 - Die Kamera dreht sich in Vierteldrehungen um die Bildmitte: Knopf oben, Q und E oder zwei Finger drehen.
 
 - Gebaut wird auf Gras (begehbar, also Teil des Labyrinths) und auf Hochflächen (nicht begehbar, Türme dort
-  ändern den Weg nie). Feste Wege, Kontrollpunkte und Wald sind tabu.
+  ändern den Weg nie, schießende Türme reichen dort 0,5 Felder weiter). Feste Wege, Kontrollpunkte und Wald
+  sind tabu.
 - Kein Bau darf einen Abschnitt des Wegs (Start, Kontrollpunkte, Burg) ganz versperren oder einen Gegner
   einsperren, und nicht auf einem Feld mit Gegner. Gegner gehen schräg, aber nie zwischen zwei Türmen hindurch.
 - Abreißen gibt 70 % des Eingesetzten zurück, in derselben Bauzeit (noch kein Schuss, keine neue Welle) alles.
@@ -101,6 +105,11 @@ mittelalterlicher Stil (Kenney Castle Kit, Untote aus dem Graveyard Kit).
 
 Zielwahl je Turm (Knopf auf der Turm-Karte): Vorderster (kürzester Restweg zur Burg, Standard), Stärkster,
 Schwächster, bei Türmen für Boden und Luft auch Flieger zuerst. Bei Gleichstand der näher an der Burg.
+
+Kein verschwendeter Schuss: Geschosse auf ein Ziel melden ihren Schaden (nach Rüstung) beim Gegner an. Reicht
+der schon unterwegs befindliche Schaden, um ihn zu besiegen, nehmen andere Türme zuerst einen anderen Gegner.
+Fällt das Ziel, während Pfeil, Bolzen, Feuer oder Magie fliegen, suchen sie sich einen passenden Gegner in bis
+zu 2 Feldern Umkreis. Kugeln und Felsen fliegen weiter auf die Stelle.
 
 ## Ausbau und Spezialisierung
 
@@ -182,7 +191,7 @@ Links am Rand, jede mit Abklingzeit (zu Beginn bereit, läuft nur, solange gespi
 | Q, E | Kamera drehen |
 | Mausrad, + und - | zoomen |
 | Pos1 oder H | zur Burg |
-| 1 bis 9, 0 | Turm wählen (nochmal drücken wählt ab) |
+| 1 bis 9, 0 | Turm wählen (nochmal drücken wählt ab), Umschalt + 1 bis 3 für den 11. bis 13. |
 | Umschalt + Klick | bauen, ohne den Baumodus zu verlassen |
 | Z X C (nach Lage, auf QWERTZ also Y X C) | Fähigkeiten |
 | U, T, Entf oder Rücktaste | ausbauen, Zielwahl, abreißen |

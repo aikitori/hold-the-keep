@@ -18,6 +18,8 @@ var burrow := false
 var alive := true
 ## Restweg bis zur Burg in Feldern (für die Zielwahl der Türme).
 var distance_left := 0.0
+## Schaden der Geschosse, die schon zu ihm unterwegs sind: Türme schießen nicht auf Gegner, die ohnehin fallen.
+var incoming := 0.0
 var game: Node
 var board: Board
 var leg := 0
@@ -44,6 +46,9 @@ var _poison_source: Tower
 var _toxic: Node3D
 var _summon_time := 0.0
 var _dust := 0.0
+var _overlay: StandardMaterial3D
+var _rage := 1.0  # Berserker: Tempo, sobald er rast
+var _steady := false
 
 
 func setup(enemy_kind: StringName, wave: int, main: Node, field: Board, from := 0) -> void:
@@ -66,12 +71,12 @@ func setup(enemy_kind: StringName, wave: int, main: Node, field: Board, from := 
 	add_child(_anim)
 	if def.has("tint"):
 		# Varianten derselben Figur: Farbe darübermultiplizieren, die Textur bleibt erkennbar.
-		var overlay := StandardMaterial3D.new()
-		overlay.albedo_color = def["tint"]
-		overlay.blend_mode = BaseMaterial3D.BLEND_MODE_MUL
-		overlay.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_overlay = StandardMaterial3D.new()
+		_overlay.albedo_color = def["tint"]
+		_overlay.blend_mode = BaseMaterial3D.BLEND_MODE_MUL
+		_overlay.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		for mesh: MeshInstance3D in _anim.find_children("*", "MeshInstance3D", true, false):
-			mesh.material_overlay = overlay
+			mesh.material_overlay = _overlay
 	var side := 1.0
 	for key: String in def.get("props", []):
 		var prop := Models.make(key)
@@ -82,6 +87,7 @@ func setup(enemy_kind: StringName, wave: int, main: Node, field: Board, from := 
 		_summon_time = def["summon"][2]
 	_armor = def.get("armor", 0.0)
 	_regen = def.get("regen", 0.0)
+	_steady = def.get("steady", false)
 	_anim.speed_scale = speed * 1.4
 	_anim.play("walk")
 	if air:
@@ -147,15 +153,28 @@ func take_damage(amount: float, pierce := false, source: Tower = null) -> void:
 		return
 	if source != null:
 		_last_source = source
-	var armor: float = _armor + game.aura_armor(self)
-	if armor > 0.0 and not pierce:
-		amount = maxf(amount * 0.25, amount - armor)
-	hp -= amount
+	hp -= damage_after_armor(amount, pierce)
 	if hp <= 0.0:
 		_die()
+	elif _rage == 1.0 and Defs.ENEMIES[kind].has("rage") and hp < max_hp * 0.5:
+		# Berserker: rast ab halbem Leben, rot und schneller.
+		_rage = Defs.ENEMIES[kind]["rage"]
+		_anim.speed_scale = speed * _rage * 1.4
+		if _overlay != null:
+			_overlay.albedo_color = Color(1.0, 0.35, 0.25)
+
+
+## Rüstung (eigene und von Schildträgern) zieht ab, höchstens 75 %.
+func damage_after_armor(amount: float, pierce := false) -> float:
+	if pierce:
+		return amount
+	var armor: float = _armor + game.aura_armor(self)
+	return maxf(amount * 0.25, amount - armor) if armor > 0.0 else amount
 
 
 func apply_slow(factor: float, seconds: float) -> void:
+	if _steady:
+		return
 	_slow = maxf(_slow, factor)
 	_slow_time = maxf(_slow_time, seconds)
 
@@ -214,9 +233,11 @@ func _process(delta: float) -> void:
 	if _burn_time > 0.0:
 		_burn_time -= delta
 		take_damage(_burn * delta, true, _burn_source if is_instance_valid(_burn_source) else null)
-		if _burn_time <= 0.0 and _fire != null:
-			_fire.queue_free()
-			_fire = null
+		if _burn_time <= 0.0:
+			_burn = 0.0  # sonst gälte ein starker Brand beim nächsten schwachen weiter
+			if _fire != null:
+				_fire.queue_free()
+				_fire = null
 		if not alive:
 			return
 	if _poison_time > 0.0:
@@ -224,6 +245,7 @@ func _process(delta: float) -> void:
 		take_damage(_poison * _poison_stacks * delta, true, _poison_source if is_instance_valid(_poison_source) else null)
 		if _poison_time <= 0.0:
 			_poison_stacks = 0
+			_poison = 0.0
 			if _toxic != null:
 				_toxic.queue_free()
 				_toxic = null
@@ -239,7 +261,7 @@ func _process(delta: float) -> void:
 			for i in int(summon[1]):
 				game.spawn_from(self, summon[0], false)
 	var height := GROUND + _lift
-	var step := speed * (1.0 - _slow) * delta
+	var step := speed * _rage * (1.0 - _slow) * delta
 	while step > 0.0:
 		if _next >= _path.size():
 			# Abschnitt geschafft: weiter zum nächsten Kontrollpunkt oder in die Burg.

@@ -232,6 +232,61 @@ func _test_new_towers(main: Main) -> void:
 	await get_tree().process_frame
 
 
+## Kein verschwendeter Schuss, neues Ziel im Flug, Brand endet ganz, Berserker, Knochenriese, Hochfläche,
+## Umschalt+1, Gegner antippen.
+func _test_mechanics(main: Main) -> void:
+	main.gold = 1000
+	var archer: Tower = main.try_build(&"archer", Vector2i(11, 7))
+	var front := _enemy(main, &"orc", archer.position + Vector3(0.5, 0, 0))
+	var back := _enemy(main, &"orc", archer.position + Vector3(-0.5, 0, 0))
+	front.distance_left = 3.0
+	back.distance_left = 8.0
+	front.incoming = front.hp
+	_check(archer._pick_targets(1) == [back], "Kein Schuss auf Gegner, die Geschosse schon sicher erledigen")
+	front.incoming = 0.0
+	var shot := Projectile.new()
+	main.add_child(shot)
+	shot.launch("arrow", archer.position + Vector3(0, 1, 0), front, {"damage": 5.0, "splash": 0.0, "slow": 0.0,
+			"slow_time": 0.0, "burn": 0.0, "chain": 0, "targets": "both"}, 12.0)
+	_check(front.incoming == 5.0, "Geschoss meldet seinen Schaden beim Ziel an")
+	front.take_damage(10000.0)
+	shot._process(0.01)
+	_check(shot.target == back and back.incoming == 5.0, "Fällt das Ziel im Flug, trifft der Pfeil den Nächsten")
+	shot.queue_free()
+	back.apply_burn(20.0, 0.1)
+	back._process(0.2)
+	back.apply_burn(2.0, 1.0)
+	_check(back._burn == 2.0, "Ein abgelaufener Brand wirkt nicht im nächsten weiter")
+	var berserker := _enemy(main, &"berserker", archer.position)
+	var calm := berserker.speed * berserker._rage
+	berserker.take_damage(berserker.max_hp * 0.6)
+	_check(berserker._rage > 1.0 and berserker.speed * berserker._rage > calm, "Berserker rast bei halbem Leben")
+	var giant := _enemy(main, &"giant", Board.world_of(Vector2i(6, 9)))
+	giant.apply_slow(0.5, 4.0)
+	_check(giant._slow == 0.0, "Knochenriese lässt sich nicht bremsen")
+	var raised := Tower.new()  # Vier Felder hat keine Hochfläche: Turm ohne Platz auf dem Brett
+	main.add_child(raised)
+	raised.setup(&"archer", Vector2i(30, 20), main, Tower.HIGH)
+	_check(is_equal_approx(raised.reach(), archer.reach() + Defs.HIGH_RANGE), "Hochfläche: Türme reichen weiter")
+	raised.queue_free()
+	var key := InputEventKey.new()
+	key.pressed = true
+	key.keycode = KEY_1
+	key.shift_pressed = true
+	main.hud._unhandled_key_input(key)
+	_check(main.hud.selected_build == Defs.BUILD_ORDER[10], "Umschalt+1 wählt den elften Turm")
+	main.hud._unhandled_key_input(key)
+	main.select_tower(null)
+	main.tap(main.rig.camera.unproject_position(giant.global_position + Vector3(0, 0.35, 0)))
+	_check(main.hud._toast.text.begins_with("Knochenriese"), "Gegner antippen zeigt Name und Leben (%s)" % main.hud._toast.text)
+	for enemy in main.enemies.duplicate():
+		main.enemies.erase(enemy)
+		enemy.queue_free()
+	main.select_tower(archer)
+	main.sell_selected()
+	await get_tree().process_frame
+
+
 ## Gräber, Schildträger, Seuchenzombie und Nekromant.
 func _test_new_enemies(main: Main) -> void:
 	var digger := _enemy(main, &"burrower", Board.world_of(main.map.spawn))
@@ -647,6 +702,7 @@ func _play() -> void:
 	await _test_abilities(main)
 	await _test_new_enemies(main)
 	await _test_new_towers(main)
+	await _test_mechanics(main)
 	main.select_tower(tower)
 	main.upgrade_selected()
 	_check(tower.level == 2, "Ausbau auf Stufe 2")
@@ -697,5 +753,14 @@ func _play() -> void:
 	main.continue_endless()
 	_check(not main.game_over and main.endless and main.countdown > 0.0 and not Defs.wave(Defs.WAVES + 5).is_empty(),
 			"Nach dem Sieg geht es endlos weiter")
+	# Niederlage: wer danach noch die Burg erreicht, löst sie nicht ein zweites Mal aus.
+	main.lives = 1
+	var last := _enemy(main, &"skeleton", Board.world_of(main.map.keep))
+	var late := _enemy(main, &"skeleton", Board.world_of(main.map.keep))
+	main.enemy_reached_keep(last)
+	Settings.save_game(main.snapshot())
+	main.enemy_reached_keep(late)
+	_check(main.game_over and main.lives == 0 and not Settings.saved_game().is_empty(), "Die Burg fällt nur einmal")
+	Settings.clear_game()
 	main.queue_free()
 	await get_tree().process_frame

@@ -24,6 +24,8 @@ const LEVEL_DAMAGE := 1.7
 const LEVEL_RANGE := 0.4
 const LEVEL_COOLDOWN := 0.9
 const UPGRADE_SHARE: Array[float] = [0.8, 1.3]
+## Schießende Türme auf der Hochfläche reichen so viel weiter.
+const HIGH_RANGE := 0.5
 
 ## parts: Modellteile von unten nach oben (castle/...), weapon: Waffe oben drauf, scale: Größe der Waffe.
 ## level_parts: kommt mit Stufe 2 und 3 unter die Spitze (der Turm wächst).
@@ -184,6 +186,7 @@ const SPECS := {
 ## burrow: gräbt sich unter Türmen hindurch (folgt wie Flieger dem Grundweg, bleibt aber Bodengegner).
 ## aura: Rüstung für andere Gegner im Umkreis von AURA_RADIUS. split: [Art, Anzahl] beim Tod.
 ## summon: [Art, Anzahl, Sekunden] ruft regelmäßig Helfer (ohne Gold).
+## rage: unter halbem Leben so viel schneller (Faktor). steady: lässt sich nicht verlangsamen.
 const ENEMIES := {
 	&"skeleton": {"name": "Skelett", "model": "graveyard/character-skeleton", "hp": 21.0, "speed": 1.5, "gold": 2, "lift": 0.2, "from": 1},
 	&"bandit": {"name": "Räuber", "model": "dungeon/character-human", "hp": 34.0, "speed": 1.2, "gold": 2, "lift": 0.0, "from": 2},
@@ -207,6 +210,10 @@ const ENEMIES := {
 		"lift": 0.2, "tint": Color(1.0, 0.88, 0.4), "split": [&"swarm", 3], "from": 18},
 	&"necromancer": {"name": "Nekromant", "model": "graveyard/character-vampire", "hp": 120.0, "speed": 0.8, "gold": 7,
 		"lift": 0.2, "tint": Color(0.7, 0.5, 1.0), "summon": [&"skeleton", 2, 5.0], "from": 21},
+	&"berserker": {"name": "Berserker", "model": "dungeon/character-orc", "hp": 80.0, "speed": 0.9, "gold": 5, "lift": 0.0,
+		"size": 1.05, "tint": Color(1.0, 0.72, 0.35), "rage": 1.7, "from": 19},
+	&"giant": {"name": "Knochenriese", "model": "graveyard/character-skeleton", "hp": 170.0, "speed": 0.75, "gold": 7,
+		"lift": 0.32, "size": 1.6, "tint": Color(0.85, 0.82, 0.72), "steady": true, "from": 23},
 	&"ghost": {"name": "Geist", "model": "graveyard/character-ghost", "hp": 41.0, "speed": 1.3, "gold": 3, "lift": 1.4, "air": true},
 	&"wisp": {"name": "Irrlicht", "model": "graveyard/character-ghost", "hp": 20.0, "speed": 2.0, "gold": 2, "lift": 1.6,
 		"air": true, "size": 0.7, "tint": Color(0.55, 0.85, 1.0), "from": 14},
@@ -217,7 +224,7 @@ const ENEMIES := {
 const WAVE_CYCLE: Array[StringName] = [&"skeleton", &"bandit", &"zombie", &"orc"]
 ## Arten für gemischte Wellen (ab Welle 6).
 const MIXED: Array[StringName] = [&"skeleton", &"bandit", &"zombie", &"orc", &"runner", &"swarm", &"ghoul", &"knight",
-		&"burrower", &"shieldbearer", &"warlord", &"plague", &"necromancer"]
+		&"burrower", &"shieldbearer", &"warlord", &"plague", &"berserker", &"necromancer", &"giant"]
 const AURA_RADIUS := 1.5
 ## Luftwellen: 4, 9, 14, ... (jede fünfte, eine vor dem Boss).
 const AIR_WAVE_EVERY := 5
@@ -284,6 +291,21 @@ static func wave_names(list: Array[StringName]) -> String:
 	return ", ".join(names)
 
 
+## Besonderheiten einer Art, z.B. ["fliegt", "schnell"] (übersetzt).
+static func traits(kind: StringName) -> Array[String]:
+	var def: Dictionary = ENEMIES[kind]
+	var out: Array[String] = []
+	for entry: Array in [[def.get("boss", false), "Boss"], [def.get("air", false), "fliegt"],
+			[def.get("armor", 0.0) > 0.0, "Rüstung"], [def.get("regen", 0.0) > 0.0, "heilt"],
+			[def["speed"] >= 1.8, "schnell"], [def["speed"] <= 0.8, "langsam"], [def.get("pack", 1) > 1, "Rudel"],
+			[def.get("burrow", false), "gräbt unter Türmen durch"], [def.has("aura"), "schützt andere"],
+			[def.has("split"), "zerfällt"], [def.has("summon"), "ruft Skelette"],
+			[def.has("rage"), "rast bei halbem Leben"], [def.get("steady", false), "nicht zu bremsen"]]:
+		if entry[0]:
+			out.append(Lang.t(entry[1]))
+	return out
+
+
 ## Vorschau einer Welle: Arten mit ihren Besonderheiten, z.B. "Ghul (heilt), Irrlicht (fliegt, schnell)".
 static func wave_preview(number: int) -> String:
 	var list := wave(number)
@@ -293,16 +315,8 @@ static func wave_preview(number: int) -> String:
 		if seen.has(kind):
 			continue
 		seen[kind] = true
-		var def: Dictionary = ENEMIES[kind]
-		var traits: Array[String] = []
-		for entry: Array in [[def.get("boss", false), "Boss"], [def.get("air", false), "fliegt"],
-				[def.get("armor", 0.0) > 0.0, "Rüstung"], [def.get("regen", 0.0) > 0.0, "heilt"],
-				[def["speed"] >= 1.8, "schnell"], [def["speed"] <= 0.8, "langsam"], [def.get("pack", 1) > 1, "Rudel"],
-				[def.get("burrow", false), "gräbt unter Türmen durch"], [def.has("aura"), "schützt andere"],
-				[def.has("split"), "zerfällt"], [def.has("summon"), "ruft Skelette"]]:
-			if entry[0]:
-				traits.append(Lang.t(entry[1]))
-		parts.append(Lang.t(def["name"]) + (" (%s)" % ", ".join(traits) if not traits.is_empty() else ""))
+		var found := traits(kind)
+		parts.append(Lang.t(ENEMIES[kind]["name"]) + (" (%s)" % ", ".join(found) if not found.is_empty() else ""))
 	return Lang.t("%s · %d Gegner") % [", ".join(parts), list.size()]
 
 

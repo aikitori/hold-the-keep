@@ -525,6 +525,8 @@ func aura_armor(enemy: Enemy) -> float:
 
 func enemy_killed(enemy: Enemy) -> void:
 	enemies.erase(enemy)
+	if game_over:
+		return
 	var bounty := 0
 	for tower: Variant in board.towers.values():
 		if enemy.gold > 0 and tower is Tower and tower.stat("bounty", 0) > 0 \
@@ -539,6 +541,8 @@ func enemy_killed(enemy: Enemy) -> void:
 
 func enemy_reached_keep(enemy: Enemy) -> void:
 	enemies.erase(enemy)
+	if game_over:
+		return  # nach der Niederlage laufen die übrigen weiter, zählen aber nicht mehr
 	lives -= 5 if enemy.is_boss else 1
 	Sfx.play(&"keep_hit")
 	if lives <= 0:
@@ -803,8 +807,9 @@ func _move_ghost(at: Vector2i) -> void:
 		_path_view.show_paths(board.full_paths_with(at), true)
 	else:
 		_path_view.show_paths(board.full_paths())
-	_show_ring(_ghost.position, Defs.tower_range(_ghost_id, 1))
-	_ring.visible = _ghost.visible and Defs.tower_range(_ghost_id, 1) > 0.0
+	var reach := Defs.tower_range(_ghost_id, 1) + Tower.high_bonus(_ghost_id, map.cell(at) == MapData.Cell.HIGH)
+	_show_ring(_ghost.position, reach)
+	_ring.visible = _ghost.visible and reach > 0.0
 	_fade_cover()
 
 
@@ -1122,6 +1127,31 @@ func tap(at: Vector2, touch := false, keep := false) -> void:
 	if picked == null and board.towers.get(cell) is Tower:
 		picked = board.towers[cell]
 	select_tower(picked)
+	if picked == null:
+		var enemy := enemy_at(at)
+		if enemy != null:
+			_describe(enemy)
+
+
+## Gegner unter der Bildschirmstelle (Mitte der Figur, großzügig für Finger).
+func enemy_at(screen: Vector2) -> Enemy:
+	var best: Enemy = null
+	var best_distance := 48.0 if UiScale.touch else 32.0
+	for enemy in enemies:
+		if not enemy.alive:
+			continue
+		var d := rig.camera.unproject_position(enemy.global_position + Vector3(0, 0.35, 0)).distance_to(screen)
+		if d < best_distance:
+			best = enemy
+			best_distance = d
+	return best
+
+
+## Name, Leben und Besonderheiten eines Gegners als Meldung.
+func _describe(enemy: Enemy) -> void:
+	var text := tr("%s · %d / %d Leben") % [tr(Defs.ENEMIES[enemy.kind]["name"]), ceili(enemy.hp), ceili(enemy.max_hp)]
+	var found := Defs.traits(enemy.kind)
+	hud.toast(text + (" · " + ", ".join(found) if not found.is_empty() else ""))
 
 
 ## Turm aus der Bauleiste aufs Feld ziehen: die Vorschau folgt (mit Touch über dem Finger).

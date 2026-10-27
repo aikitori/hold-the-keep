@@ -2,9 +2,12 @@ class_name Projectile
 extends Node3D
 ## Geschoss: Pfeile, Bolzen, Feuer und Magie fliegen hinter dem Ziel her, Felsbrocken im Bogen auf die
 ## Stelle, an der das Ziel beim Abschuss stand. `hit` trägt die Wirkung: damage, splash, slow, slow_time,
-## burn (Schaden pro Sekunde), chain (springt auf weitere Gegner).
+## burn (Schaden pro Sekunde), chain (springt auf weitere Gegner), targets (Boden, Luft oder beides).
+## Geschosse auf ein Ziel melden ihren Schaden beim Gegner an (`Enemy.incoming`); fällt er vorher, suchen sie
+## sich einen Gegner in der Nähe.
 
 const CHAIN_RANGE := 2.5
+const RETARGET_RANGE := 2.0
 
 var kind: String
 var target: Enemy
@@ -17,17 +20,15 @@ var _to: Vector3
 var _t := 0.0
 var _duration := 1.0
 var _model: Node3D
+var _reserved := 0.0  # beim Ziel angemeldeter Schaden
 
 
 func launch(shot_kind: String, from: Vector3, enemy: Enemy, effect: Dictionary, fly_speed: float) -> void:
 	kind = shot_kind
-	target = enemy
 	hit = effect
 	speed = fly_speed
-	_from = from
 	position = from
-	_to = enemy.global_position + Vector3(0, 0.3, 0)
-	_duration = maxf(0.12, _from.distance_to(_to) / speed)
+	_aim(enemy)
 	match kind:
 		"arrow", "bolt":
 			_model = Models.make("td/weapon-ammo-arrow")
@@ -47,6 +48,47 @@ func launch(shot_kind: String, from: Vector3, enemy: Enemy, effect: Dictionary, 
 	if hit["burn"] > 0.0 and kind == "arrow":
 		_model.add_child(_orb(0.07, Color(1.0, 0.5, 0.1)))
 	add_child(_model)
+
+
+## Auf einen Gegner zielen (beim Abschuss und beim Wechsel des Ziels).
+func _aim(enemy: Enemy) -> void:
+	_release()
+	target = enemy
+	_from = position
+	_to = enemy.global_position + Vector3(0, 0.3, 0)
+	_t = 0.0
+	_duration = maxf(0.12, _from.distance_to(_to) / speed)
+	if hit["splash"] <= 0.0:
+		_reserved = enemy.damage_after_armor(hit["damage"], _pierces())
+		enemy.incoming += _reserved
+
+
+func _release() -> void:
+	if is_instance_valid(target):
+		target.incoming = maxf(0.0, target.incoming - _reserved)
+	_reserved = 0.0
+
+
+func _pierces() -> bool:
+	return kind in ["magic", "fire", "poison"]
+
+
+## Nächster passender Gegner nahe der Stelle, an der das alte Ziel fiel.
+func _retarget() -> bool:
+	var best: Enemy = null
+	var best_distance := RETARGET_RANGE
+	var wanted: String = hit.get("targets", "both")
+	for enemy: Enemy in get_parent().enemies:
+		if not enemy.alive or already.has(enemy) or (enemy.air and wanted == "ground") or (not enemy.air and wanted == "air"):
+			continue
+		var d := enemy.global_position.distance_to(_to)
+		if d < best_distance:
+			best = enemy
+			best_distance = d
+	if best == null:
+		return false
+	_aim(best)
+	return true
 
 
 static func _orb(radius: float, color: Color) -> MeshInstance3D:
@@ -69,6 +111,8 @@ func _process(delta: float) -> void:
 	var arc := kind in ["boulder", "cannonball"]
 	if not arc and is_instance_valid(target) and target.alive:
 		_to = target.global_position + Vector3(0, 0.3, 0)
+	elif not arc and _reserved > 0.0 and not _retarget():
+		_release()  # niemand mehr da: fliegt ins Leere
 	var f := clampf(_t / _duration, 0.0, 1.0)
 	var pos := _from.lerp(_to, f)
 	if arc:
@@ -82,6 +126,7 @@ func _process(delta: float) -> void:
 
 
 func _hit() -> void:
+	_release()
 	var main := get_parent()
 	var splash: float = hit["splash"]
 	if splash > 0.0:
@@ -106,7 +151,7 @@ func _apply(enemy: Enemy) -> void:
 		enemy.apply_burn(hit["burn"], 3.0, hit.get("source"))
 	if hit.get("poison", 0.0) > 0.0:
 		enemy.apply_poison(hit["poison"], hit["stacks"], hit.get("source"))
-	enemy.take_damage(hit["damage"], kind in ["magic", "fire", "poison"], hit.get("source"))
+	enemy.take_damage(hit["damage"], _pierces(), hit.get("source"))
 
 
 ## Kettenblitz: weiter zum nächsten Gegner, der noch nicht getroffen wurde.

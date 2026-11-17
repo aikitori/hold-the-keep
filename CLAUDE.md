@@ -53,6 +53,8 @@ Spielregeln und Werte: `docs/GAME_DESIGN.md`.
   Neue Modelle: Liste in `tools/import_kenney.py` ergänzen, Pakete von kenney.nl entpacken,
   `python3 tools/import_kenney.py <Ordner>`. Modelle laden über `Models.make("castle/wall")`.
 - Belagerungswaffen schauen im Modell nach -x und stehen 0,2 tiefer, Graveyard-Figuren ebenfalls (`lift`).
+- README-Bilder in `docs/screenshots/` (WebP, `.gdignore`): `shot.tscn -- <Ordner> <menu|weites_feld|gegner> en`,
+  dann mit `Image.save_webp` umwandeln.
 - Schrift `assets/fonts/MedievalSharp.ttf` (OFL). App-Icons in `assets/icon/` (gerendert mit
   `scenes/dev/shot.tscn -- <Ordner> icon`, dann verkleinert).
 
